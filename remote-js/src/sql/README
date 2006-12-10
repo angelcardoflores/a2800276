@@ -1,0 +1,2 @@
+sqlite3 remote.sqllite.db
+ruby -rubygems test.rb

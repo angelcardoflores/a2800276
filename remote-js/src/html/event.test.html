@@ -1,0 +1,96 @@
+<html>
+	<head>
+		<title>Event Test</title>
+<style type="text/css">
+body {
+	background-color:black;
+}
+#red {
+	background-color:red;
+	height:150px;
+	width:150px;
+	position:absolute;
+	top:10px;
+	left:10px;
+}
+#yellow {
+	background-color:yellow;	
+	height:150px;
+	width:150px;
+	position:absolute;
+	top:10px;
+	left:170px;
+}
+#blue {
+	background-color:blue;	
+	height:150px;
+	width:150px;
+	position:absolute;
+	top:170px;
+	left:10px;
+}
+#green {
+	background-color:green;	
+	height:150px;
+	width:150px;
+	position:absolute;
+	top:170px;
+	left:170px;
+}
+
+form {
+	position:absolute;
+	top:350px;
+	left:10px;
+
+}
+</style>
+<script type="text/javascript" src="../js/utils.js"></script>
+<script type="text/javascript" src="../js/event.js"></script>
+<script type="text/javascript" src="../lib/json.js"></script>
+<script type="text/javascript" src="../lib/all_scripts.js"></script>
+
+<script type="text/javascript">
+
+	var recorder = null
+	function go() {
+		recorder = new MouseRecorder ()
+		recorder.startRecording()
+		alert ("Starting")
+	}
+
+	function stop(){
+		recorder.stopRecording()
+		alert ("Stopped")
+
+	}
+
+	function print (txt) {
+		var area = document.forms.myform.console
+		tmpTxt = area.value 
+		tmpTxt += "\n"+txt
+		area.value = tmpTxt	
+	}
+
+</script>
+</head>
+<body>
+
+<div id='red' onClick="stop();" class='geom'></div><!-- red -->
+<div id='yellow' class='geom'></div><!-- yellow -->
+<div id='blue'  class='geom'></div><!-- blue -->
+<div id='green' onClick="go();" class='geom'></div><!-- green -->
+
+
+<br clear="all" />
+
+<form id="myform">
+	<textarea id="console" cols="80" rows="20"></textarea>
+	<input type="button" onClick="document.forms.myform.console.value=''; return false" value="clear" >
+
+</form>
+
+
+
+</body>
+</html>
