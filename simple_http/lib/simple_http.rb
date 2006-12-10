@@ -35,12 +35,51 @@ require 'cgi'
 #		binaryData = getImage
 #		SimpleData.post binaryData, "image/png"
 #
+#		# GET requst with a custom request_header
+#		sh = SimpleHttp.new "http://www.example.com"
+#		sh.request_headers= {'X-Special-Http-Header'=>'my-value'}
+#		sh.get
 #	</pre>
 class SimpleHttp
 	
-	attr_accessor :proxy_host, :proxy_port, :proxy_user, :proxy_pwd, :uri
-	
-	def initialize uri
+	attr_accessor :proxy_host, :proxy_port, :proxy_user, :proxy_pwd, :uri, :request_headers, :response_handlers, :follow_num_redirects
+
+	RESPONSE_HANDLERS = {
+		Net::HTTPResponse => lambda { |request, response, http| 
+			return response.to_s
+		},
+		Net::HTTPSuccess => lambda { |request, response, http|
+			return response.body
+		},
+		Net::HTTPRedirection => lambda { |request, response, http|
+			raise "too many redirect!" unless http.follow_num_redirects > 0	
+			
+			# create a new SimpleHttp for the location
+			# refered to decreasing the remaining redirects
+			# by one.
+			sh = SimpleHttp.new response['location'], http.follow_num_redirects-1
+
+			# copy the response handlers used in the current
+			# request in case they were non standard.
+			sh.response_handlers = http.response_handlers
+
+			# http doesn't permit redirects for methods
+			# other than GET of HEAD, so we complain in case
+			# we get them in response to a POST request. (Or
+			# anything other than GET, for that matter.) 
+			
+			if request.class == Net::HTTP::Get
+				return sh.get
+			else 
+				raise "Not a valid HTTP method for redirection: #{request.class}"
+				
+			end
+		}
+
+	}
+
+
+	def initialize uri, follow_num_redirects=5
 		set_proxy ENV['http_proxy'] if ENV['http_proxy']
 						
 		if uri.class == String
@@ -55,6 +94,54 @@ class SimpleHttp
 				@uri.path="/"
 			end
 		end
+		
+		@request_headers={}
+		@response_handlers=RESPONSE_HANDLERS
+		@follow_num_redirects=follow_num_redirects
+
+
+	end
+	
+	#
+	# this method can be used to register response handlers for
+	# specific http responses in case you need to override the
+	# default behaviour. Defaults are:
+	# 	HTTPRedirection : follow the redirection until success
+	# 	HTTPSuccess : return the body of the response
+	# 	default : raise the response object.
+	#
+	# `clazz` is the subclass of HTTPResponse (or HTTPResponse in case
+	# you want to define "default" behaviour) that you are
+	# registering the handler for.
+	#
+	# `block` is the handler itself, if a response of the approiate
+	# class is received, `block` is called with two parameters: the
+	# actual HTTPResponse object that was received and a reference
+	# to the instance of `SimpleHttp` that is executing the call.
+	#
+	# example:
+	# 	# to override the default action of following a HTTP
+	# 	redirect, you could register the folllowing handler:
+	#
+	# 	sh = SimpleHttp "www.example.com"
+	# 	sh.register_response_handler Net::HTTPRedirection {|response, shttp|
+	#		return response['location']
+	# 	}
+	#
+	
+	def register_response_handler clazz, &block
+		c = clazz
+	       	while c != Object
+			# completely unnecessary sanity check to make sure parameter
+			# `clazz` is in fact a HTTPResponse ...
+			if c == Net::HTTPResponse
+				@response_handlers[clazz]=block 
+				return
+			end
+			c = c.superclass
+		end
+
+		raise "Trying to register a response handler for non-response class: #{clazz}"	
 	end
 
 	#
@@ -104,7 +191,38 @@ class SimpleHttp
 			@proxy_pwd = proxy.password
 		end
 	end
+
+	# interal 
+	# Takes a HTTPResponse (or subclass) and determines how to
+	# handle the response. Default behaviour is:
+	# 	HTTPSuccess : return the body of the response
+	# 	HTTPRedirection : follow the redirect until success.
+	# 	default : raise the HTTPResponse.
+	#
+	# the default behaviour can be overidden by registering a
+	# response handler using the `register_response_handler` method.
+	#
 	
+	def handle_response http_request, http_response
+		raise "Not a Net::HTTPResponse" unless http_response.is_a? Net::HTTPResponse
+		
+		c = http_response.class
+		while c!=Object
+			# the response_handlers hash contains a handler
+			# for the specific response class.
+			if @response_handlers[c]
+				return @response_handlers[c].call(http_request, http_response, self)
+			end
+
+			c=c.superclass
+		end	
+
+		# if we reached this place, no handler was registered
+		# for this response. default is to return the response.
+		
+		return http_response
+	end
+
 	# internal
 	def do_http request
 		response = nil
@@ -112,8 +230,13 @@ class SimpleHttp
 		http = Net::HTTP.new(@uri.host, @uri.port, @proxy_host,
 			@proxy_port, @proxy_user, @proxy_pwd)
 		http.use_ssl = @uri.scheme == 'https'
-		return http.request(request)
-			
+	
+		# add custom request headers.	
+		@request_headers.each {|key,value|
+			request[key]=value;
+		}
+
+		handle_response(request, http.request(request));
 	end
 
 	# internal
@@ -170,12 +293,12 @@ class SimpleHttp
 	
 end
 
-ht = SimpleHttp.new "http://www.google.de/search"
+ht = SimpleHttp.new "http://www.google.com/aldfksjaldskjfalskjfdlk"
+#ht.register_response_handler(Net::HTTPRedirection) {|req, res, ht| puts res['location']}
+puts ht.get.class
 #puts(ht.get("q"=>"bla"))
 
-puts (SimpleHttp.get "http://www.google.com").each_header {|head, val|
-	puts "#{head} => #{val}" 
-}
+#puts (SimpleHttp.get "http://www.google.com")
 
 ['http://www.google.com/', 'www.google.com', 'https://www.google.com'].each {|u|
 	SimpleHttp.new u
