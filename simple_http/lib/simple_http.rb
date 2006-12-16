@@ -46,7 +46,7 @@ class SimpleHttp
 
 	RESPONSE_HANDLERS = {
 		Net::HTTPResponse => lambda { |request, response, http| 
-			return response.to_s
+			return response
 		},
 		Net::HTTPSuccess => lambda { |request, response, http|
 			return response.body
@@ -88,13 +88,13 @@ class SimpleHttp
 				uri = "http://#{uri}"
 			end
 
-			@uri = URI.parse uri
+			uri = URI.parse uri
 
-			if !@uri.path || "" == @uri.path.strip
-				@uri.path="/"
-			end
 		end
-		
+		@uri = uri
+		if !@uri.path || "" == @uri.path.strip
+			@uri.path="/"
+		end
 		@request_headers={}
 		@response_handlers=RESPONSE_HANDLERS
 		@follow_num_redirects=follow_num_redirects
@@ -103,29 +103,32 @@ class SimpleHttp
 	end
 	
 	#
-	# this method can be used to register response handlers for
-	# specific http responses in case you need to override the
-	# default behaviour. Defaults are:
+	# this method can be used to register response handlers for specific
+	# http responses in case you need to override the default behaviour.
+	# Defaults are: 
+	#
+	# 	HTTPSuccess : return the body of the response 
 	# 	HTTPRedirection : follow the redirection until success
-	# 	HTTPSuccess : return the body of the response
-	# 	default : raise the response object.
+	# 	Others : return the (net/http) response object.
 	#
-	# `clazz` is the subclass of HTTPResponse (or HTTPResponse in case
-	# you want to define "default" behaviour) that you are
-	# registering the handler for.
+	# `clazz` is the subclass of HTTPResponse (or HTTPResponse in case you
+	# want to define "default" behaviour) that you are registering the
+	# handler for.
 	#
-	# `block` is the handler itself, if a response of the approiate
-	# class is received, `block` is called with two parameters: the
-	# actual HTTPResponse object that was received and a reference
-	# to the instance of `SimpleHttp` that is executing the call.
+	# `block` is the handler itself, if a response of the appropriate class
+	# is received, `block` is called with three parameters: the the
+	# Net::HTTPRequest, the actual HTTPResponse object that was received
+	# and a reference to the instance of `SimpleHttp` that is executing the
+	# call.
 	#
-	# example:
+	# example: 
+	#
 	# 	# to override the default action of following a HTTP
-	# 	redirect, you could register the folllowing handler:
+	# 	# redirect, you could register the folllowing handler:
 	#
-	# 	sh = SimpleHttp "www.example.com"
-	# 	sh.register_response_handler Net::HTTPRedirection {|response, shttp|
-	#		return response['location']
+	# 	sh = SimpleHttp "www.example.com" sh.register_response_handler
+	# 	Net::HTTPRedirection {|response, shttp| 
+	# 		return response['location'] 
 	# 	}
 	#
 	
@@ -146,7 +149,7 @@ class SimpleHttp
 
 	#
 	#	Set the proxy to use for the http request.
-	# 	Not that you don't need to set the proxy in case the
+	# 	Note that you don't need to set the proxy in case the
 	# 	`http_proxy` environment variable is set. To override 
 	#	previous proxy settings and connect directly, call 
 	#	`set_proxy nil`
@@ -163,6 +166,7 @@ class SimpleHttp
 	#	or:
 	#		set_proxy nil # to override previous proxy
 	#		settings and make the request directly.
+	#
 			
 	
 	def set_proxy proxy, port=nil, user=nil, pwd=nil
@@ -293,16 +297,16 @@ class SimpleHttp
 	
 end
 
-ht = SimpleHttp.new "http://www.google.com/aldfksjaldskjfalskjfdlk"
-#ht.register_response_handler(Net::HTTPRedirection) {|req, res, ht| puts res['location']}
-puts ht.get.class
-#puts(ht.get("q"=>"bla"))
-
-#puts (SimpleHttp.get "http://www.google.com")
-
-['http://www.google.com/', 'www.google.com', 'https://www.google.com'].each {|u|
-	SimpleHttp.new u
-}
-#puts ht.post
+#ht = SimpleHttp.new "http://www.google.com/aldfksjaldskjfalskjfdlk"
+##ht.register_response_handler(Net::HTTPRedirection) {|req, res, ht| puts res['location']}
+#puts ht.get.class
+##puts(ht.get("q"=>"bla"))
+#
+##puts (SimpleHttp.get "http://www.google.com")
+#
+#['http://www.google.com/', 'www.google.com', 'https://www.google.com'].each {|u|
+#	SimpleHttp.new u
+#}
+##puts ht.post
 
 
