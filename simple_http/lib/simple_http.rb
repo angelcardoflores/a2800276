@@ -100,7 +100,7 @@ class SimpleHttp
 
 
 		@request_headers={}
-		@response_handlers=RESPONSE_HANDLERS
+		@response_handlers=RESPONSE_HANDLERS.clone
 		@follow_num_redirects=3
 
 		if @uri.user
@@ -272,7 +272,10 @@ class SimpleHttp
 		}
 		str
 	end
-
+	
+	# Easiest usage. Make a GET request to the provided URI.
+	# Example:
+	# puts(SimpleHttp.get("www.example.com"))
 	def self.get uri, query=nil
 		http = SimpleHttp.new uri
 		http.get query	
