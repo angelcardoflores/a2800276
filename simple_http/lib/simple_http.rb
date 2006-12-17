@@ -2,6 +2,7 @@ require 'net/http'
 require 'net/https'
 require 'uri'
 require 'cgi'
+require 'base64'
 
 
 # Wrapper around ruby's standard net/http classes. Currently, only GET
@@ -28,7 +29,7 @@ require 'cgi'
 #		# POST using the instance methods
 #		uri = URI.parse "https://www.example.com/index.html"
 #		sh = SimpleHttp uri
-#		sh.setProxy "my.proxy", "8080"
+#		sh.set_proxy "my.proxy", "8080"
 #		sh.post {"query" => "query_data"}
 #
 #		# POST using class methods.
@@ -46,18 +47,19 @@ class SimpleHttp
 
 	RESPONSE_HANDLERS = {
 		Net::HTTPResponse => lambda { |request, response, http| 
-			return response
+			raise response.to_s
 		},
 		Net::HTTPSuccess => lambda { |request, response, http|
 			return response.body
 		},
 		Net::HTTPRedirection => lambda { |request, response, http|
-			raise "too many redirect!" unless http.follow_num_redirects > 0	
+			raise "too many redirects!" unless http.follow_num_redirects > 0	
 			
 			# create a new SimpleHttp for the location
 			# refered to decreasing the remaining redirects
 			# by one.
-			sh = SimpleHttp.new response['location'], http.follow_num_redirects-1
+			sh = SimpleHttp.new response['location']
+			sh.follow_num_redirects = http.follow_num_redirects-1
 
 			# copy the response handlers used in the current
 			# request in case they were non standard.
@@ -79,7 +81,7 @@ class SimpleHttp
 	}
 
 
-	def initialize uri, follow_num_redirects=5
+	def initialize uri
 		set_proxy ENV['http_proxy'] if ENV['http_proxy']
 						
 		if uri.class == String
@@ -95,11 +97,28 @@ class SimpleHttp
 		if !@uri.path || "" == @uri.path.strip
 			@uri.path="/"
 		end
+
+
 		@request_headers={}
 		@response_handlers=RESPONSE_HANDLERS
-		@follow_num_redirects=follow_num_redirects
+		@follow_num_redirects=3
 
+		if @uri.user
+			basic_authentication @uri.user, @uri.password
+		end
 
+	end
+
+	# 
+	# Provides facilities to perform http basic authentication. You
+	# don't need to provide +usr+ and +pwd+ if they are already included
+	# in the uri, i.e. http://user:password@www.example.com/
+	#
+	
+	def basic_authentication usr, pwd
+		str = Base64.encode64("#{usr}:#{pwd}")
+		str = "Basic #{str}"
+		@request_headers["Authorization"]=str
 	end
 	
 	#
@@ -126,9 +145,9 @@ class SimpleHttp
 	# 	# to override the default action of following a HTTP
 	# 	# redirect, you could register the folllowing handler:
 	#
-	# 	sh = SimpleHttp "www.example.com" sh.register_response_handler
-	# 	Net::HTTPRedirection {|response, shttp| 
-	# 		return response['location'] 
+	# 	sh = SimpleHttp "www.example.com" 
+	# 	sh.register_response_handler Net::HTTPRedirection {|request, response, shttp| 
+	# 		response['location'] 
 	# 	}
 	#
 	
@@ -235,7 +254,8 @@ class SimpleHttp
 			@proxy_port, @proxy_user, @proxy_pwd)
 		http.use_ssl = @uri.scheme == 'https'
 	
-		# add custom request headers.	
+		# add custom request headers.
+		
 		@request_headers.each {|key,value|
 			request[key]=value;
 		}
@@ -258,7 +278,7 @@ class SimpleHttp
 		http.get query	
 	end
 
-	def self.port uri, query=nil, content_type='application/x-www-form-urlencoded'
+	def self.post uri, query=nil, content_type='application/x-www-form-urlencoded'
 		http = SimpleHttp.new uri
 		http.post query, content_type
 	end
@@ -286,12 +306,10 @@ class SimpleHttp
 	def post query=nil, content_type='application/x-www-form-urlencoded'
 		req = Net::HTTP::Post.new(@uri.path)
 
-		puts req.class
-		req.methods.each {|meth|
-			puts meth
-		}
 		req.body= make_query query if query
 		req.content_type=content_type if query
+		req.content_length=query ? req.body.length : 0
+
 		do_http req
 	end
 	
