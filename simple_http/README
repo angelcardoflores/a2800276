@@ -37,7 +37,10 @@ FEATURES / USAGE
 	http = SimpleHttp.new "http://www.example.com"
 	http.basic_authentication "user", "password"
 	http.post "query" => "example_query" 
-	
+
+* Access headers of the request or response
+	http = SimpleHttp.new "www.example.com"
+	http.request_header["X-Custom-Header"]="useful header"	
 	
 * Automatically follows Http Redirects.
 	

@@ -14,15 +14,15 @@ require 'base64'
 #  
 #
 # Features:
-# 	* Handles Redirects automatically
-# 	* Proxy used transparently if http_proxy environment variable is
-# 	set.
-# 	* SSL handled automatically
-# 	* fault tolerant uri, e.g. all of these would work:
+# 
+# * Handles Redirects automatically
+# * Proxy used transparently if http_proxy environment variable is
+#   set.
+# * SSL handled automatically
+# * fault tolerant uri, e.g. all of these would work:
 # 	"www.example.com", "www.example.com/", "http://www.example.com"
 #
 # Some usage examples:
-#	<pre>
 #		# plain GET (using class methods)
 #		SimpleHttp.get "www.example.com"
 #
@@ -40,7 +40,6 @@ require 'base64'
 #		sh = SimpleHttp.new "http://www.example.com"
 #		sh.request_headers= {'X-Special-Http-Header'=>'my-value'}
 #		sh.get
-#	</pre>
 class SimpleHttp
 	
 	attr_accessor :proxy_host, :proxy_port, :proxy_user, :proxy_pwd, :uri, :request_headers, :response_handlers, :follow_num_redirects
@@ -80,7 +79,16 @@ class SimpleHttp
 
 	}
 
-
+	# SimpleHttp can either be used directly through the +get+ and
+	# +post+ class methods or be instantiated, in case you need to
+	# to add custom behaviour to the requests.
+	#
+	# @param may be a URI or a String.
+	#
+	# Example:
+	# 	http = SimpleHttp.new(URI.parse("http://www.example.com"))
+	# 	http = SimpleHttp.new "www.example.com"
+	# 	http = SimpleHttp.new "http://usr:pwd@www.example.com:1234"
 	def initialize uri
 		set_proxy ENV['http_proxy'] if ENV['http_proxy']
 						
@@ -128,7 +136,7 @@ class SimpleHttp
 	#
 	# 	HTTPSuccess : return the body of the response 
 	# 	HTTPRedirection : follow the redirection until success
-	# 	Others : return the (net/http) response object.
+	# 	Others : raise an exception 
 	#
 	# `clazz` is the subclass of HTTPResponse (or HTTPResponse in case you
 	# want to define "default" behaviour) that you are registering the
@@ -174,16 +182,15 @@ class SimpleHttp
 	#	`set_proxy nil`
 	#
 	#	usage:
-	#		set_proxy <string>, e.g. set_proxy "http://proxy:8000"
+	#		http = SimpleHttp.new "www.example.com"
+	#		
+	#		http.set_proxy "http://proxy:8000"
 	#	or:
-	#		set_proxy <uri>, e.g.
-	#		uri = URI.parse("http://proxy:8000")
-	#		...set_proxy(uri)
+	#		http.set_proxy(URI.parse("http://proxy:8000"))
 	#	or:
-	#		set_proxy <host>, <port>, <user>, <pwd>, e.g.
-	#		...set_proxy 'proxy', '8000', 'my_user', 'secret'
+	#		http.set_proxy 'proxy', '8000', 'my_user', 'secret'
 	#	or:
-	#		set_proxy nil # to override previous proxy
+	#		http.set_proxy nil # to override previous proxy
 	#		settings and make the request directly.
 	#
 			
@@ -218,6 +225,7 @@ class SimpleHttp
 	# interal 
 	# Takes a HTTPResponse (or subclass) and determines how to
 	# handle the response. Default behaviour is:
+	#
 	# 	HTTPSuccess : return the body of the response
 	# 	HTTPRedirection : follow the redirect until success.
 	# 	default : raise the HTTPResponse.
@@ -273,19 +281,37 @@ class SimpleHttp
 		str
 	end
 	
-	# Easiest usage. Make a GET request to the provided URI.
+	# Make a simple GET request to the provided URI.
+	#
 	# Example:
-	# puts(SimpleHttp.get("www.example.com"))
+	# 	puts(SimpleHttp.get("www.example.com"))
 	def self.get uri, query=nil
 		http = SimpleHttp.new uri
 		http.get query	
 	end
 
+	# Make a POST request to the provided URI.
+	#
+	# Example:
+	# 	puts(SimpleHttp.post("www.example.com", "query"=>"my_query"))
+	#
+	# Alternatively, you can post any sort of data, but will have to
+	# set the appriate content_type:
+	#
+	# 	SimpleHttp.post("http://www.example.com/", binary_data, "img/png")
+	 
 	def self.post uri, query=nil, content_type='application/x-www-form-urlencoded'
 		http = SimpleHttp.new uri
 		http.post query, content_type
 	end
 	
+	# Call the +get+ method as an instance method if you need to
+	# modify the default behaviour of the library, or set special
+	# headers:
+	#
+	# 	http = SimpleHttp.new "www.example.com"
+	# 	http.request_headers["X-Special"]="whatever"
+	# 	str = http.get 
 	def get query = nil
 		if (query = make_query query)
 			@uri.query = @uri.query ? @uri.query+"&"+query : query
