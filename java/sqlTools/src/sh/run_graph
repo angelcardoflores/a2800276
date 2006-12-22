@@ -1,0 +1,15 @@
+CLASSPATH=./classes:../function/classes/:../utils/classes/:../dot/classes/:/home/tim/oracle.jdbc/jdbc816classes12.zip
+MAIN=sqlTools.dot.TestDot
+DRIVER=oracle.jdbc.driver.OracleDriver
+HOST=eric.devel.pago.de
+DB=devnet
+URL=jdbc:oracle:thin:@${HOST}:1521:${DB}
+USER=twbrokat
+PASSWD=twdev
+
+java -cp $CLASSPATH \
+$MAIN \
+-driver $DRIVER \
+-url $URL \
+-user $USER \
+-password $PASSWD

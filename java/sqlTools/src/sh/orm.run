@@ -1,0 +1,13 @@
+HOST=bambi
+MAIN_CLASS=sqlTools.sample.MerchantIndex
+URL=jdbc:oracle:thin:@${HOST}:1521:tstnet
+USER=twbrokat
+PAWD=brtest
+DRIVER=oracle.jdbc.driver.OracleDriver
+
+java -classpath ./classes:../function/classes:../utils/classes:/home/tim/tools/oracle_jdbc/ojdbc14.jar \
+$MAIN_CLASS \
+-url $URL \
+-user $USER \
+-password $PAWD \
+-driver $DRIVER

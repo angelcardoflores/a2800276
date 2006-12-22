@@ -1,0 +1,63 @@
+
+public class SQLInsertBuffer {
+
+	private String tableName;
+	private boolean valid = true;
+	private boolean first = true;
+	private StringBuffer names = new StringBuffer();
+	private StringBuffer values = new StringBuffer();
+
+	private String insert;
+	
+	public SQLInsertBuffer (String tableName) {
+		this.tableName = tableName;
+	}
+
+	protected void check () throws RuntimeException {
+		if (!valid)
+			throw new RuntimeException ("buffer already invalidated!");
+	}
+
+	public void add (String name, String value){
+		check ();
+		if (first) first = false;
+		else {
+			names.append (", ");
+			values.append (", ");
+		}
+		names.append (name);
+		values.append (value);
+	}
+
+	public void add (String name, int value) {
+		add (name, Integer.toString(value));	
+	}
+
+	public void addQuote (String name, String value) {
+		add (name, "'"+value+"'");
+	}
+
+	public String toString () {
+		valid = false;	
+		if (insert!=null)
+			return insert;
+		StringBuffer buf = new StringBuffer ();
+		buf.append ("insert into ");
+		buf.append (this.tableName);
+		buf.append (" (");
+		buf.append (this.names.toString());
+		buf.append (") VALUES (");
+		buf.append (this.values.toString());
+		buf.append (")");
+		return buf.toString();
+	}
+
+	public static void main (String [] args) {
+		SQLInsertBuffer buf = new SQLInsertBuffer ("MY_TABLE");
+		buf.add ("EINS", 1);
+		buf.add ("ZWEI", "2");
+		buf.addQuote ("DREI", "drei");
+		System.out.println (buf.toString());
+		buf.add ("This", "won't work!");
+	}
+}

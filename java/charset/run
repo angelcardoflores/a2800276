@@ -1,0 +1,4 @@
+CLASSPATH=$JIKESPATH:./classes
+CLASSPATH=$CLASSPATH:../html/classes:../function/classes
+CLASS=charset.Ebcdic
+java -classpath ${CLASSPATH} $CLASS $@

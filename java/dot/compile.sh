@@ -1,0 +1,1 @@
+jikes -d classes *.java
