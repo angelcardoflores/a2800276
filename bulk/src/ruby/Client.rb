@@ -1,47 +1,37 @@
 #!/usr/bin/env ruby
 
-require 'SimpleHttp'
+require 'simple_http'
 require 'digest/sha1'
+require 'constants'
 
 module Bulkupload
 
 
 	module Protocol
-	
-		X_BULK_FUNCTION = 'X-BULK-FUNCTION'
-		X_BULK_USER	= 'X-BULK-USER'
-		X_BULK_PASSWORD	= 'X-BULK-PASSWORD'
-		X_BULK_STATUS	= 'X-BULK-STATUS'
-		X_BULK_SESSION	= 'X-BULK-SESSION'
-		X_BULK_FILENAME	= 'X-BULK-FILENAME'
-		X_BULK_LENGTH	= 'X-BULK-LENGTH'
-		X_BULK_CHUNK	= 'X-BULK-CHUNK'
-		X_BULK_HASH	= 'X-BULK-HASH'
-		X_BULK_HOST	= 'X-BULK-HOST'
-
-		STATUS_OK	= 'OK'
-		STATUS_FAILED	= 'FAILED'
-		STATUS_SESSION	= 'SESSION_EXPIRED'
-		STATUS_STARTED	= 'IN_PROGRESS'
-		STATUS_COMPLETE	= 'COMPLETE'
-
-		FUNCTION_LOGIN	= 'LOGIN'
-		FUNCTION_INIT	= 'INIT_UPLOAD'
-		FUNCTION_QUERY	= 'QUERY'
-		FUNCTION_UPLOAD	= 'UPLOAD'
-		FUNCTION_CANCEL	= 'CANCEL'
 		
+			
+		# Logs on to the server and retrieves a session
 		class Login 
+			
+			# Parameters
+			# 	user
+			# 	password
+			# 	host_uri
+			#
+			# 	raises exception if login fails or no session is returned.
+			#
+			# 	session id is returned through `session`
 			def initialize user, password, host_uri
 				@user		= user
 				@passwd		= password
 				@host_uri	= host_uri
-				@host_uri = host_uri
+
+				@session = do_login
 			end
 
+			
 			def session
 				@session ||= do_login
-				
 			end
 
 			def do_login
@@ -50,22 +40,21 @@ module Bulkupload
 				http.request_headers[X_BULK_FUNCTION]	= FUNCTION_LOGIN
 				http.request_headers[X_BULK_USER]	= @user
 				http.request_headers[X_BULK_PASSWORD]	= @passwd
-				http.register_response_handler(Net::HTTPSuccess) { |request, response, http|
-					if response[X_BULK_STATUS] != STATUS_OK
-					
-						raise "Logging in to #{@host_uri} with: #{@user},#{@passwd}"
-					end
-
-					@session = response[X_BULK_SESSION]
-					
-					raise "No Session in response from: #{@host_uri}" unless @session
-				}
+				
 				http.post
+				status = http.response_headers[X_BULK_STATUS]
+				if status != STATUS_OK
+					raise "Logging in to #{@host_uri} with: #{@user},#{@passwd} failed"
+				end
+				session = http.response_headers[X_BULK_SESSION]
+				raise "No Session in response from: #{@host_uri}" unless session
+				session
 			end
 
 			
 		end # class Login
 
+		# Initializes a new upload.
 		class Init
 			
 			attr_reader :status
@@ -75,18 +64,27 @@ module Bulkupload
 			#	file_name	: name of file to upload
 			#	length		: number of bytes in file
 			#	num_chunks	: number of chunks file is split up in
+			#	chunks_length	: size of chunks 
 			#	hash		: SHA-1 hash of complete file
+			#	host_uri	: location for request
 			#
 			
-			def initialize session, file_name, length, num_chunks, hash, host_uri
+			def initialize session, file_name, length, num_chunks, chunk_length, hash, host_uri
 				@session = session
 				@file_name = file_name
 				@length = length
 				@num_chunks = num_chunks
+				@chunk_length = chunk_length
 				@hash = hash
 				@host_uri = host_uri
 			end # initialize
 			
+			# expected results:
+			# 	STATUS_OK	: new upload, continue
+			# 	STATUS_STARTED	: upload in progress, continue
+			# 	STATUS_SESSION	: session expired
+			# 	STATUS_COMPLETE : already uploaded
+			# 	STATUS_FAILED	: error
 			def response
 				http = SimpleHttp.new @host_uri
 				http.request_headers[X_BULK_FUNCTION]	= FUNCTION_INIT
@@ -94,12 +92,12 @@ module Bulkupload
 				http.request_headers[X_BULK_FILENAME]	= @file_name
 				http.request_headers[X_BULK_LENGTH]	= @length
 				http.request_headers[X_BULK_CHUNK]	= @num_chunks
+				http.request_headers[X_BULK_CHUNK_LEN]	= @chunk_length
 				http.request_headers[X_BULK_HASH]	= @hash
 
 				http.register_response_handler(Net::HTTPSuccess){ |request, response, http|
 					
 					@status = response[X_BULK_STATUS]
-					
 					if STATUS_STARTED == @status
 					
 						# already have an upload started, check that chunksize, etc. are identical
@@ -118,6 +116,10 @@ module Bulkupload
 						if response[X_BULK_CHUNK].to_i != @num_chunks
 							raise "Num Chunks for started upload differs. yours: #{@num_chunks} expected #{response[X_BULK_CHUNK]}"
 						end
+
+						if response[X_BULK_CHUNK_LEN].to_i != @chunk_length
+							raise "Chunk size for started upload differs. yours: #{@chunk_length} expected #{response[X_BULK_CHUNK_LEN]}"
+						end
 						
 						if response[X_BULK_HASH] != @hash
 							raise "Hash for started upload differs. Yours: #{@hash} expected #{response[X_BULK_HASH]}"
@@ -127,7 +129,7 @@ module Bulkupload
 
 						
 					elsif STATUS_OK != @status
-						raise "Init upload for session #{session} failed with #{response[X_BULK_STATUS]}"
+						raise "Init upload for session #{@session} failed with #{response[X_BULK_STATUS]}"
 					end
 
 				}
@@ -138,15 +140,27 @@ module Bulkupload
 			
 		end # class Init
 		
+		# Ask the server for the next chunk to upload and the uri to upload it to.
 		class Query
 			
 			attr_reader :status, :chunk, :upload_uri
+
+			#
+			# session	: returned by LOGIN
+			# hash		: hash of the upload
+			# host_uri	: host uri to upload to
+			#
+			# after `response` is called, `upload_uri` will contain the
+			# uri to upload the chunk to and `chunk` will contain the 
+			# requested chunk number
 			def initialize session, hash, host_uri
 				@session = session
 				@hash = hash
 				@host_uri = host_uri
 			end
-
+			
+			#
+			# 
 			def response
 				http = SimpleHttp.new @host_uri
 				http.request_headers[X_BULK_FUNCTION]	= FUNCTION_QUERY
@@ -158,7 +172,8 @@ module Bulkupload
 					@status = response[X_BULK_STATUS]
 					
 					if STATUS_COMPLETE != @status && STATUS_OK != @status
-						raise "Query for session #{session} failed with #{response[X_BULK_STATUS]}"
+						puts @status
+						raise "Query for session #{@session} failed with #{@status}"
 					end
 
 					if STATUS_OK == @status
@@ -170,8 +185,15 @@ module Bulkupload
 				@status
 			end
 		end #class Query
-
+		
+		# Upload a chunk
 		class Upload
+			
+			# session	: returned by LOGIN
+			# hash		: hash of the upload
+			# chunk_nr	: the current chunk being uploaded returned by QUERY
+			# data		: the chunk data
+			# host_uri	: host uri to upload to returned by QUERY
 			def initialize session, hash, chunk_nr, data, host_uri
 				@session = session
 				@hash = hash
@@ -200,8 +222,15 @@ module Bulkupload
 				http.post @data
 			end
 		end # class Upload
-
+		
+		# Inform the server to cancel a chunk upload
 		class Cancel
+
+			# session	: returned by LOGIN
+			# hash		: hash of the upload
+			# chunk_nr	: number of the upload to cancel
+			# host_uri	: host uri to send cancel to
+
 			def initialize session, hash, chunk_nr, host_uri
 				@session = session
 				@hash = hash
@@ -293,7 +322,7 @@ class Bulkfile < File
 		
 		begin
 			@all_chunk_map = ""
-			0.upto (num_chunks-1) { |i|
+			0.upto(num_chunks-1) { |i|
 				@all_chunk_map += sha1_chunk(i)
 			}
 
@@ -303,7 +332,7 @@ class Bulkfile < File
 	
 	def sha1_chunk i
 		sha1 = Digest::SHA1.new(chunk(i))
-		sha1.digest
+		sha1.to_s
 	end
 
 	def sha1
@@ -334,18 +363,19 @@ class Client
 
 	def add_file file
 		@files ||= []
-		@files.push Bulkfile.new file
+		file = Bulkfile.new(file) unless file.instance_of? Bulkfile
+		@files.push(file)
 	end
 
 	def do_upload
 		@files.each { |file|
 		#	def initialize session, file_name, length, num_chunks, hash, host_uri
-			init = Protocol::Init.new @session, file.path, file.length, file.num_chunks, file.sha1, @host_uri
+			init = Protocol::Init.new(@session, file.path, file.size, file.num_chunks, file.chunk_size, file.sha1, @host_uri)
 			init.response
 
 			query = Protocol::Query.new @session, file.sha1, @host_uri
-			while query.response != Protocol.STATUS_COMPLETE
-				upload = Protocol::Upload.new @session, file.sha1, query.chunk, file.chunk[query.chunk.to_i], query.upload_uri 
+			while query.response != Protocol::STATUS_COMPLETE
+				upload = Protocol::Upload.new @session, file.sha1, query.chunk, file.chunk(query.chunk.to_i), query.upload_uri 
 				upload.response
 			end
 		}
@@ -363,12 +393,13 @@ if $0 == __FILE__
 	
 	
 	
-	if (ARGV.length != 1 || !File.exists?(ARGV[0]) || !File.file?(ARGV[0]) || !File.readable?(ARGV[0])) 
-		puts "usage: ... filename"
+	if (ARGV.length != 2 || !File.exists?(ARGV[0]) || !File.file?(ARGV[0]) || !File.readable?(ARGV[0])) 
+		puts "usage: ... filename, uri"
 		puts "\t #{ARGV[0]} is not a readable file"
 		exit 1
 	end
 	
+	uri = ARGV[1]
 	bf = Bulkupload::Bulkfile.new ARGV[0]	
 	puts "sha1 hash : #{bf.sha1}"
 	puts "filesize  : #{bf.size}"
@@ -378,6 +409,8 @@ if $0 == __FILE__
 		puts i
 		puts bf.sha1_chunk(i)
 	}
+
+
 end
 
 # Chunk size.
