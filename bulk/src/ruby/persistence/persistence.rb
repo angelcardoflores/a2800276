@@ -29,7 +29,7 @@ module Persistence
 
 		end
 
-		def self.generateSessionToken user, ip
+		def self.generate_session_token user, ip
 			if user && ip
 				sha1 = Digest::SHA1.new(user+PASSWD_SALT_SECRET+ip+Time.now.to_i.to_s)
 				tok=sha1.to_s	
@@ -38,7 +38,7 @@ module Persistence
 
 		end
 
-		def self.retrieveSession session
+		def self.retrieve_session session
 			# look up stored session.
 			# throw excepion if no valid session is found.
 		end
@@ -75,7 +75,7 @@ module Persistence
 			return false
 		end
 
-		def self.retrieveUpload user_id, hash
+		def self.retrieve_upload user_id, hash
 
 		end
 		

@@ -64,11 +64,11 @@ module Protocol
 		def response
 			ses = nil
 			begin 
-				ses = Session.retrieveSession @session
+				ses = Session.retrieve_session @session
 				raise "failed" unless ses.valid
 				
 				# check in progress
-				upload = Upload.retrieveUpload ses.user_id, @hash
+				upload = Upload.retrieve_upload ses.user_id, @hash
 
 			puts "Upload: #{upload==nil}"
 				if upload
@@ -103,11 +103,11 @@ module Protocol
 		def response
 			ses = nil
 			begin 
-				ses = Session.retrieveSession @session
+				ses = Session.retrieve_session @session
 				raise "failed" unless ses.valid
 				
 				# check in progress
-				upload = Upload.retrieveUpload ses.user_id, @hash
+				upload = Upload.retrieve_upload ses.user_id, @hash
 				if upload
 					ret = {}
 
@@ -118,6 +118,8 @@ module Protocol
 						@http_response[X_BULK_CHUNK]	= upload.next_chunk_number
 						
 					end
+				else # no such Upload could be loaded.
+					raise "no such upload: #{@hash} for user: #{ses.user_id}"
 				end
 			rescue
 				puts $!
@@ -140,11 +142,11 @@ module Protocol
 
 			ses = nil
 			begin 
-				ses = Session.retrieveSession @session
+				ses = Session.retrieve_session @session
 				raise "failed" unless ses.valid
 				
 				# check in progress
-				upload = Upload.retrieveUpload ses.user, @hash
+				upload = Upload.retrieve_upload ses.user, @hash
 			
 				if upload
 					ret = {}

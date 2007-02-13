@@ -35,7 +35,7 @@ upload_id	INTEGER PRIMARY KEY AUTO_INCREMENT,
 session_id	INTEGER,
 since		DATE,
 last_seen	DATE,
-status		VARCHAR(16),			-- null, INPROGRESS, CANCELED, COMPLETE
+status		VARCHAR(16),			-- null, REQUESTED, INPROGRESS, CANCELED, COMPLETE
 filename	VARCHAR(1024),
 num_chunks	INTEGER NOT NULL,
 length		INTEGER NOT NULL,
@@ -47,7 +47,7 @@ FOREIGN KEY (session_id) REFERENCES bulk_session(session_id)
 
 ---
 ---	Table to register information about the individual chunks 
----	compromising the upload. Stores information about the 
+---	comprising the upload. Stores information about the 
 ---	hash values and upload status of each chunk	
 ---
 DROP TABLE IF EXISTS bulk_chunks ;
@@ -61,7 +61,8 @@ hash		VARCHAR(40) NOT NULL,
 since		DATE,
 last_seen 	DATE,
 FOREIGN KEY (upload_id) REFERENCES bulk_upload(upload_id),
-FOREIGN KEY (session_id) REFERENCES bulk_session(session_id)
+FOREIGN KEY (session_id) REFERENCES bulk_session(session_id),
+UNIQUE (upload_id, chunk_nr)
 ) type = InnoDB ;
 
 
