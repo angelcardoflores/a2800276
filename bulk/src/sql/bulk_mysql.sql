@@ -1,9 +1,15 @@
 
+---
+--- CASCADE is supported only "to make porting easier"...
+---
+DROP TABLE IF EXISTS bulk_chunks CASCADE;
+DROP TABLE IF EXISTS bulk_upload CASCADE;
+DROP TABLE IF EXISTS bulk_session CASCADE;
+DROP TABLE IF EXISTS bulk_user CASCADE;
 
 --- 
 --- 	User information. Basic stuff.
 ---
-DROP TABLE IF EXISTS bulk_user ;
 CREATE   TABLE bulk_user (
 user_id		INTEGER PRIMARY KEY AUTO_INCREMENT,	-- numeric id
 user_name	VARCHAR(256) NOT NULL UNIQUE,		-- self picked
@@ -14,7 +20,6 @@ user_pwd	VARCHAR(40)				-- sha1 (md5?) hash of passwd + salt
 ---
 ---	User session	
 ---
-DROP TABLE IF EXISTS bulk_session;
 CREATE  TABLE bulk_session (
 session_id	INTEGER PRIMARY KEY AUTO_INCREMENT,
 session_token	VARCHAR(40) NOT NULL UNIQUE,
@@ -29,7 +34,6 @@ FOREIGN KEY (user_id) REFERENCES bulk_user(user_id)
 ---	Contains information about the entire upload process, 
 ---	general information about the file being uploaded.
 ---
-DROP TABLE IF EXISTS bulk_upload ;
 CREATE  TABLE bulk_upload (
 upload_id	INTEGER PRIMARY KEY AUTO_INCREMENT,
 session_id	INTEGER,
@@ -50,7 +54,6 @@ FOREIGN KEY (session_id) REFERENCES bulk_session(session_id)
 ---	comprising the upload. Stores information about the 
 ---	hash values and upload status of each chunk	
 ---
-DROP TABLE IF EXISTS bulk_chunks ;
 CREATE  TABLE bulk_chunks (
 chunk_id	INTEGER PRIMARY KEY AUTO_INCREMENT,
 upload_id	INTEGER,

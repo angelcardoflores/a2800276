@@ -65,6 +65,10 @@ module Persistence
 			@chunk_size=chunk_size
 			@hash=hash
 		end
+		
+		def to_s
+			"#{self.class}  fn: #{filename} len: #{length} nc #{num_chunks} siz: #{chunk_size} status: #{status}"
+		end
 	
 		# next chunk required for upload
 		def next_chunk_number

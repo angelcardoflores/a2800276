@@ -4,6 +4,7 @@ require 'Server'
 require 'persistence/mysql'
 
 require 'webrick'
+require 'stringio'
 
 include WEBrick
 include Bulkupload::Protocol
@@ -55,19 +56,30 @@ module Server
 			}
 
 		end # add_services
+		
+		def handle_upload req, res
+			puts ">>server.handle_upload"
+			#TODO this is absolutely shameful
+			io = StringIO.new req.body
+			upload = UploadResponse.new req, res, io 
+			upload.response
+		end
 
 		def handle_query req, res
+			puts ">>server.handle_query"
 			query = QueryResponse.new req, res
 			query.response
 		end
 		
 		def handle_init req, res
+			puts ">>server.handle_init"
 			init_resp = InitResponse.new req, res
 			init_resp.response
 		end # handle_init
 
 
 		def handle_login req, res
+			puts ">>server.handle_login"
 			user = req[X_BULK_USER]
 			passwd = req[X_BULK_PASSWORD]
 			ip = req.peeraddr[3]

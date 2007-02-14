@@ -214,7 +214,7 @@ module Bulkupload
 					
 					@status = response[X_BULK_STATUS]
 					if STATUS_OK != @status
-						raise "Upload for chunk #{@chunk} session #{session} failed with #{@status}"
+						raise "Upload for chunk #{@chunk} session #{@session} failed with #{@status}"
 					end
 
 					@status
@@ -357,6 +357,7 @@ class Client
 		
 		@host_uri=host_uri
 		login = Protocol::Login.new user, password, host_uri
+		puts "logged in, session: #{login.session}"
 		@session = login.session
 		
 	end
@@ -371,12 +372,16 @@ class Client
 		@files.each { |file|
 		#	def initialize session, file_name, length, num_chunks, hash, host_uri
 			init = Protocol::Init.new(@session, file.path, file.size, file.num_chunks, file.chunk_size, file.sha1, @host_uri)
-			init.response
+			status = init.response
+			puts "Init complete: #{status}"
 
 			query = Protocol::Query.new @session, file.sha1, @host_uri
 			while query.response != Protocol::STATUS_COMPLETE
-				upload = Protocol::Upload.new @session, file.sha1, query.chunk, file.chunk(query.chunk.to_i), query.upload_uri 
-				upload.response
+				puts "Query returned chunk: #{query.chunk}"
+				uri = query.upload_uri && query.upload_uri.size != 0 ? query.upload_uri : @host_uri
+				upload = Protocol::Upload.new @session, file.sha1, query.chunk, file.chunk(query.chunk.to_i), uri 
+				status = upload.response
+				puts "Upload: #{status}"
 			end
 		}
 	end

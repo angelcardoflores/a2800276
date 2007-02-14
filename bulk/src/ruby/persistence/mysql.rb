@@ -116,7 +116,7 @@ module Mysql
 				raise "login denied"
 			end
 			
-			@session_token = SessionBase.generateSessionToken @user_name, @client_ip
+			@session_token = SessionBase.generate_session_token @user_name, @client_ip
 			db.sql "INSERT INTO bulk_session (session_token, user_id, since, last_seen, ip_address)
 				VALUES (?, ?, NOW(), NOW(), ?)", @session_token, user_id, @client_ip
 
@@ -166,7 +166,7 @@ module Mysql
 		end
 
 		def complete?
-			"COMPLETE" == @status	
+			"COMPLETED" == @status	
 		end
 
 		def next_chunk_number
@@ -181,10 +181,15 @@ module Mysql
 					WHERE upload_id = ? 
 					AND (status IS NULL OR status='CANCELED')
 					ORDER BY chunk_nr LIMIT 1", @upload_id
-		
+	puts "!!!! #{@num_chunks}"
+	puts "!!!! #{chunk}"	
+
+			raise "no more chunks!" unless chunk
+
 			if @num_chunks <= chunk
 				raise "trying to go beyond last chunk!"
 			end
+
 			
 			db.sql "UPDATE bulk_chunks SET status = 'REQUESTED', last_seen=NOW() WHERE chunk_nr = ? AND upload_id = ?", chunk, @upload_id
 						
@@ -195,19 +200,21 @@ module Mysql
 		#	store chunk_nr 
 		#
 		def save chunk_nr, io
-			puts ">>save"
-			
+			puts ">>mysql.save"
+			chunk_nr = chunk_nr.to_i
+
 			# check chunk_nr is inprogress
 			chunk_hash, status = db.sql "SELECT hash, status FROM bulk_chunks WHERE chunk_nr=? AND upload_id=?", chunk_nr, @upload_id
-			
+			puts "nr #{chunk_nr} status #{status} hash #{chunk_hash}"
+
 			if !status || "REQUESTED" != status
 				raise "Chunk: #{chunk_nr} is not REQUESTED. Status: #{status}"
 			else
-				db.sql "UPDATE bulk_chunks SET status='INPROGRESS', last_seen=NOW() WHERE chunk_number=? and upload_id=?", chunk_number, @upload_id
+				db.sql "UPDATE bulk_chunks SET status='INPROGRESS', last_seen=NOW() WHERE chunk_nr=? and upload_id=?", chunk_nr, @upload_id
 			end
 			
 			if -1 == chunk_nr	# write chunk hashes to db
-				handle_hashes	
+				handle_hashes io	
 			else			# write io to tmp
 				
 				
@@ -224,7 +231,10 @@ module Mysql
 			
 			end
 
-			db.sql "UPDATE bulk_chunks SET status='COMPLETED' WHERE chunk_number=? and upload_id=?", chunk_number, @upload_id
+			db.sql "UPDATE bulk_chunks SET status='COMPLETED' WHERE chunk_nr=? and upload_id=?", chunk_nr, @upload_id
+			if chunk_nr == @num_chunks-1
+				db.sql "UPDATE bulk_upload SET status='COMPLETED' WHERE upload_id=?", @upload_id
+			end
 		end
 		
 		# 
@@ -232,13 +242,13 @@ module Mysql
 		#	INTERNAL
 		#
 		def handle_hashes io
-			puts ">> handle_hashes"
+			puts ">>mysql.handle_hashes"
 			
 		
 			chunk_hash=nil
 			i=0
 			
-			while (chunk_hash=io.read(40)!=nil) 
+			while (chunk_hash=io.read(40)) 
 				db.sql "INSERT INTO bulk_chunks (upload_id, session_id, status, chunk_nr, hash, since, last_seen)
 					VALUES (?, ?, null, ?, ?, NOW(), NOW())", @upload_id, @session.session_id, i, chunk_hash
 
@@ -272,6 +282,8 @@ module Mysql
 			db.sql "INSERT INTO bulk_upload
 				(session_id, since, last_seen, status, filename, num_chunks, length, chunk_size, hash)
 				VALUES (?, NOW(), NOW(), 'INPROGRESS', ?, ?, ?,?, ?)", @session.session_id, @filename, @num_chunks, @length, @chunk_size, @hash
+
+			@upload_id = db.sql "SELECT LAST_INSERT_ID()"
 			# insert first chunk
 			db.sql "INSERT INTO bulk_chunks (upload_id, session_id, status, chunk_nr, hash, since, last_seen)
 				VALUES (?, ?, NULL, -1, '0', NOW(), NOW())", @upload_id, @session.session_id

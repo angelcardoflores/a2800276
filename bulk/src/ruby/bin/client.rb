@@ -2,7 +2,6 @@ require 'Client'
 
 
 if $0 == __FILE__
-	puts ARGV.length
 	
 	
 	

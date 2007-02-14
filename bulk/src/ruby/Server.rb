@@ -110,12 +110,13 @@ module Protocol
 				upload = Upload.retrieve_upload ses.user_id, @hash
 				if upload
 					ret = {}
-
+			puts upload
 					if upload.complete?
 						@http_response[X_BULK_STATUS]	= STATUS_COMPLETE
 					else
 						@http_response[X_BULK_STATUS]	= STATUS_OK
 						@http_response[X_BULK_CHUNK]	= upload.next_chunk_number
+						@http_response[X_BULK_HOST]	= "" 
 						
 					end
 				else # no such Upload could be loaded.
@@ -132,10 +133,12 @@ module Protocol
 	end # end query response
 
 	class UploadResponse
-		def initialize header, io
+		def initialize header, res, io
 			@session	= header[X_BULK_SESSION]
 			@hash		= header[X_BULK_HASH]
 			@chunk_nr	= header[X_BULK_CHUNK]
+			@http_response 	= res
+			@io		= io
 		end
 
 		def response
@@ -146,26 +149,24 @@ module Protocol
 				raise "failed" unless ses.valid
 				
 				# check in progress
-				upload = Upload.retrieve_upload ses.user, @hash
+				upload = Upload.retrieve_upload ses.user_id, @hash
 			
 				if upload
 					ret = {}
 
 					if upload.complete?
-						return {X_BULK_STATUS => STATUS_COMPLETE}
+						@http_response[X_BULK_STATUS] = STATUS_COMPLETE
 					else
 						upload.save @chunk_nr, @io
-						
-						return {
-							X_BULK_STATUS 	=> STATUS_OK
-						}
+						@http_response[X_BULK_STATUS] = STATUS_OK	
 					end
 				end
+			rescue
+				puts $!
+				puts $!.backtrace
+				@http_response[X_BULK_STATUS]=STATUS_FAILED
 			end
 			
-			return {
-				X_BULK_STATUS => STATUS_FAILED
-			}
 		end
 
 		
