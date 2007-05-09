@@ -128,7 +128,7 @@ end #module
 
 if $0 == __FILE__
 
-   node = Erlang::LocalNode.new "test@localhost"
+   node = Erlang::LocalNode.new "test@127.0.0.1", "abc"
    while true
      #resp = Erlang::Epmd.instance.lookup_port(node)
      puts "alive"

@@ -29,7 +29,6 @@ module Net
   # |2byte bigend len| data[len] ... |
   # this function returns just the data.
   def read_packet tag=nil
-    debug "!!!!!!!! #{tag}"
     len = self.read(2)
     data = nil
     if len 
@@ -139,29 +138,31 @@ class IncomingConnection < TCPServer
     debug "wrote sok"
 
     tag = 'n'
-    dist = '\5\5'
-    flags = DFLAG_EXTENDED_REFERENCES | DFLAG_EXTENDED_PIDS_PORTS
+    #dist = "\0\5"
+    #flags = DFLAG_EXTENDED_REFERENCES | DFLAG_EXTENDED_PIDS_PORTS
+    flags = 0x03fe
     flags = e_four_bytes_big(flags)
     challenge = rand 2**32
+    debug challenge
     digest = gen_digest challenge, @local_node
     challenge = e_four_bytes_big(challenge)
-    chal_mes = tag+"\5\5"+flags+challenge+@local_node.full_name
+    chal_mes = tag+dist+flags+challenge+@local_node.full_name
     debug "will write #{chal_mes.size}"
     socket.write_packet(chal_mes)
     debug "wrote...."
 
 
     data = socket.read_packet 'r'
-    debug data
     re_challenge = d_four_bytes_big(data[0,4])
     re_digest = data[4,data.length]
-
-    debug "rec chal: #{digest == re_digest}"
-
-    tag = 'a'
-    digest = gen_digest @local_node, re_challenge
-    socket.write_packet tag+digest
     
+
+    debug "rec chal: #{digest == re_digest} len #{digest.size} rlen #{re_digest.size}"
+    debug "here!"
+    tag = 'a'
+    digest = gen_digest re_challenge, @local_node
+    socket.write_packet tag+digest
+    debug "sent"
 
   end
 end
