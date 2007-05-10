@@ -3,6 +3,7 @@ require 'digest/md5'
 require 'erlang_util'
 require 'erlang_node'
 require 'erlang_epmd'
+require 'erlang_type'
 module Erlang
 
 
@@ -28,11 +29,10 @@ module Net
   # Erlang packages are formatted:
   # |2byte bigend len| data[len] ... |
   # this function returns just the data.
-  def read_packet tag=nil
-    len = self.read(2)
+  def read_packet_2 tag=nil
+    len = self.read_two_bytes_big
     data = nil
     if len 
-      len = d_two_bytes_big(len)
       data = self.read(len)
     end
     if tag
@@ -43,10 +43,37 @@ module Net
     data
   end
 
-  def write_packet data
+  def read_packet_4 tag=nil
+    debug "!!!!!!!!!!!! #{tag}"
+    len = self.read_four_bytes_big
+    data = nil
+    if len
+        data = self.read(len)
+    end
+    if tag
+      rtag = data[0,1]
+      raise "Protocol Error: expected tag '#{tag}', received '#{rtag}'" unless tag==rtag
+      data = data[1,data.size-1] 
+    end
+    data
+  end
+
+  def read_four_bytes_big
+    val = self.read(4)
+    d_four_bytes_big(val)
+  end
+  
+  def read_two_bytes_big
+    val = self.read(2)
+    d_two_bytes_big(val)
+  end
+
+  def write_packet_2 data
     len = e_two_bytes_big(data.size)
     self.write(len+data)
   end
+
+  
 
   def gen_digest challenge, node
     Digest::MD5.digest(node.cookie+challenge.to_s)
@@ -71,15 +98,15 @@ class Connection < TCPSocket
     flags = e_four_bytes_big(flags)
     payload = "n\5\5"+flags+@node.full_name
     
-    write_packet(payload)
+    write_packet_2(payload)
 
     # expecting: sok
-    data = read_packet 's'
+    data = read_packet_2 's'
     debug "resp #{data}"
     #TODO check resp ok
 
     # expecting n|\5\5|flags|challenge|remote_name
-    data = read_packet 'n'
+    data = read_packet_2 'n'
     dist = d_two_bytes_big(data[0,2]) # should be 5,5
     peer_flags = d_four_bytes_big(data[2,4])
     challenge = d_four_bytes_big(data[6,4])
@@ -97,9 +124,9 @@ class Connection < TCPSocket
     my_digest = gen_digest my_challenge, @node
 
     chal = e_four_bytes_big(my_challenge)
-    write_packet(tag+chal+digest)
+    write_packet_2(tag+chal+digest)
 
-    chal_resp = read_packet 'a'
+    chal_resp = read_packet_2 'a'
 
     debug "chal: #{chal_resp==my_digest}"
 
@@ -121,10 +148,12 @@ class IncomingConnection < TCPServer
     class << session; include Erlang::Net; end
     debug session.class
     do_handshake session
-    session
+    data = session.read_packet_4 'p' # 112 'passthrough
+    control_msg = Erlang::BaseType.parse data 
+
   end
   def do_handshake socket
-    data = socket.read_packet 'n'
+    data = socket.read_packet_2 'n'
     debug "read: #{data}"
     dist = data[0,2]  # 5,5
     flags = data[2,4] # flags
@@ -133,9 +162,8 @@ class IncomingConnection < TCPServer
    
     debug "#{node_name} : connection"
 
-    socket.write_packet 'sok'
+    socket.write_packet_2 'sok' # take other possibilities into account TODO
     
-    debug "wrote sok"
 
     tag = 'n'
     #dist = "\0\5"
@@ -148,22 +176,20 @@ class IncomingConnection < TCPServer
     challenge = e_four_bytes_big(challenge)
     chal_mes = tag+dist+flags+challenge+@local_node.full_name
     debug "will write #{chal_mes.size}"
-    socket.write_packet(chal_mes)
+    socket.write_packet_2(chal_mes)
     debug "wrote...."
 
 
-    data = socket.read_packet 'r'
+    data = socket.read_packet_2 'r'
     re_challenge = d_four_bytes_big(data[0,4])
     re_digest = data[4,data.length]
     
 
     debug "rec chal: #{digest == re_digest} len #{digest.size} rlen #{re_digest.size}"
-    debug "here!"
     tag = 'a'
     digest = gen_digest re_challenge, @local_node
-    socket.write_packet tag+digest
-    debug "sent"
-
+    socket.write_packet_2 tag+digest
+    return true 
   end
 end
 

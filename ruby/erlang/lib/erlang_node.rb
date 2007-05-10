@@ -13,8 +13,8 @@ class Node
     @node_type  = erl_io.getc
     @protocol   = erl_io.getc
     @dist_range = [d_two_bytes_big(erl_io.read(2)), d_two_bytes_big(erl_io.read(2))]
-    @node_name  = erl_io.read_packet
-    @extra      = erl_io.read_packet
+    @node_name  = erl_io.read_packet_2
+    @extra      = erl_io.read_packet_2
     self
   end
   

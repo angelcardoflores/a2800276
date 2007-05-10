@@ -140,7 +140,7 @@ class Epmd
     resp = nil
     TCPSocket.open(req.node.host,EPMDPORT) {|socket|
       class << socket; include Erlang::Net; end
-      socket.write_packet(req.encode)
+      socket.write_packet_2(req.encode)
       resp = resp_class.new socket
     }
     resp
@@ -165,7 +165,7 @@ class Epmd
     
     socket = TCPSocket.open(req.node.host,EPMDPORT)
     class << socket; include Erlang::Net; end
-    socket.write_packet req.encode
+    socket.write_packet_2 req.encode
     resp = Epmd_Alive2_Resp.new socket
     
     if resp.result != 0
