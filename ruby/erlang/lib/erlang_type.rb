@@ -1,4 +1,3 @@
-require 'stringio'
 
 module Erlang
 
@@ -6,7 +5,7 @@ module Erlang
   SMALLINT =     97
 
   # The tag used for integers 
-  INT =          98
+  INTEGER =          98
 
   # The tag used for floating point numbers 
   FLOAT =       99
@@ -85,34 +84,38 @@ module Erlang
   end
 
 class BaseType
-  def self.parse str
-    puts str.class 
-    str = StringIO.new(str) unless str.kind_of? IO
-    puts str.class
-    ver = str.getc 
-    raise "Protocol Error: unknown version (#{ver}), expected 131" unless ver == 131
-    tag = str.getc
-    puts tag
+  def self.parse io, parse_version=false
+    io = StringIO.new(io) unless io.kind_of? StringIO
+    class << io; include Erlang::Net; end
+    if parse_version then
+      ver = io.getc 
+      raise "Protocol Error: unknown version (#{ver}), expected 131" unless ver == 131
+    end
+    tag = io.getc
     
     case tag
-    #when SMALLINT
-    when INT
+    when SMALLINT
+      type = Number.decode io, tag
+    when INTEGER
+      type = Number.decode io, tag
     when SMALLBIG
       type = Number.parse io, tag
     when FLOAT
       type = Float.parse io
-    when ATOM  #
-      type = Atom.parse io
+    when ATOM  # 100
+      type = Atom.decode io
     when REF
-      type = Ref.parse io
-    when PORT
+      type = Ref.decode io, tag
     when NEWREF
-      type = Port.parse io, tag
+      type = Ref.decode io, tag
+    when PORT
+      type = Port.decode io
     when PID
-      type = Pid.parse io
-    when SMALLTUPLE
+      type = Pid.decode io
+    when SMALLTUPLE 
+      type = Tuple.decode(io,tag)
     when LARGETUPLE
-      type = Tuple.parse(io, tag)
+      type = Tuple.decode(io, tag)
     when NIL
       type = nil
     when STRING
@@ -121,7 +124,6 @@ class BaseType
       type = List.parse io
     when BIN
       type = BIN.parse io
-      type NEWREF
     else
       raise "not supported! #{tag}"
     end
@@ -145,7 +147,7 @@ class Atom < BaseType
   include Erlang
   
   def initialize val
-    if val.class != Symbol
+    if val.class != Symbol && val.size > 0 #TODO empty ATOM wtf?
       val = val.to_s.to_sym
     end
     @atom = val
@@ -155,11 +157,14 @@ class Atom < BaseType
     base_encode(ATOM, @atom.to_s)
   end
   
+  def to_s
+    "'#{@atom}'"
+  end 
   #  1       2        Len
   #+-----+-------+-----------+
   #| 100 | Len   | Atom name |
   #+-----+-------+-----------+
-  def self.parse io
+  def self.decode io
     len = io.read_two_bytes_big 
     self.new io.read(len)
   end
@@ -233,6 +238,10 @@ class Number
     end
   end #encode
 
+  def to_s
+    @val.to_s
+  end
+
   #  1    1
   #+----+-----+
   #| 97 | Int |
@@ -240,12 +249,12 @@ class Number
   #
   #  1       4
   #+----+-----------+
-  #| 98 |   Int     |
+  #| 98 |   Int     | #98
   #+----+-----------+
   def self.decode io, tag
-    if tag == INT
+    if tag == SMALLINT # 97
       val = io.getc
-    elsif tag == SMALLBIG
+    elsif tag == INTEGER # 98
       val = io.read_four_bytes_big
     else
       raise "Protocol Error: unknown tag (#{tag}) for Number"
@@ -279,9 +288,9 @@ class List
   def self.decode io
     len = io.read_four_bytes_big 
     list = self.new []
-    if len>0 do
+    if len>0 then
       1.upto(len){
-        list.push(BaseType.parse io)
+        list.push(BaseType.parse(io))
       }
     end
     list  
@@ -306,6 +315,10 @@ class Tuple
     [tuple_head, elems].flatten
   end
 
+  def size
+    @val.size
+  end
+
   #  1       1        N
   #+-----+-------+--------------+
   #| 104 | Arity |    Elements  |
@@ -316,7 +329,7 @@ class Tuple
   #| 105 | Arity |    Elements  |
   #+-----+-------+--------------+
 
-  def self.parse io, tag
+  def self.decode io, tag
     if tag == SMALLTUPLE
       arity = io.getc
     elsif tag == LARGETUPLE
@@ -324,16 +337,26 @@ class Tuple
     else
       raise "Protocol Error: unknown tag (#{tag}) for Tuple"
     end
+    val = []
+    1.upto(arity){ |i|
+      type = BaseType.parse(io)
+      val.push(type)
+    }
 
-    @val = []
-    1.upto(arity){
-      @val.push(BaseType.parse(io))
-    } 
     self.new(val)
+  end
+
+  def to_s
+    str = '{'
+      @val.each_with_index { |val,i|
+        str += ',' unless i==0
+        str += val.to_s
+      }
+    str += '}'
   end
 end#tuple
 
-def Pid
+class Pid
   attr_accessor :node, :id, :serial, :creation
   def initialize node, id, serial, creation
     @node=node
@@ -350,12 +373,16 @@ def Pid
     pay
   end
 
+  def to_s
+    str = "<#{@node}.#{id}.#{creation}>"
+  end
+
   #  1       N            4            4           1
   #+-----+-----------+-----------+-----------+----------+
   #| 103 |    Node   |    ID     |  Serial   | Creation |
   #+-----+-----------+-----------+-----------+----------+
   def self.decode io
-    node = Atom.decode io
+    node = BaseType.parse io
     id = io.read_four_bytes_big & 0x7fff
     serial = io.read_four_bytes_big & 0x1fff
     creation = io.getc & 0x3
@@ -378,19 +405,23 @@ class Port
     pay
   end
   
+  def to_s
+    "#Port<#{@node}.#{@id}> creation: #{@creation}"
+  end
+
   #  1       N            4           1
   #+-----+-----------+-----------+----------+
-  #| 102 |    Node   |    ID     | Creation |
+  #| 102 |    Node   |    ID     | Creation | # port
   #+-----+-----------+-----------+----------+
   def self.decode io
-    node = Atom.decode io
+    node = BaseType.parse io
     id = io.read_four_bytes_big io & 0xfffffff # why different mask than PID? TODO
     creation = io.getc & 0x3
     self.new node, id, creation
   end
 end # Port
 
-def Ref
+class Ref
   attr_accessor :node, :id, :creation
   def initialize node, id, creation
     @node=node
@@ -417,6 +448,15 @@ def Ref
     pay
   end
   
+  def to_s
+    return "#Ref<#{@node}.#{@id}> #{@creation}|" unless @id.class.is_a? Array
+    str = "#Ref<#{@node}"
+    @id.each {|i|
+      str += ".#{i}"
+    }
+    str += "> #{@creation}|"
+  end
+
   # 1       N            4           1
   #+-----+-----------+-----------+----------+
   #| 101 |    Node   |     ID    | Creation |
@@ -427,12 +467,14 @@ def Ref
   #+-----+-----+-----------+-----------+-----------+
   def self.decode io, tag
     if tag==REF
-      node = Atom.decode io
+      puts "REF"
+      node = BaseType.parse io
       id = io.read_four_bytes_big & 0x3ffff
       creation = io.getc
     elsif tag==NEWREF
-      len = get_len io
-      node = Atom.decode io
+
+      len = io.read_two_bytes_big 
+      node = BaseType.parse io
       creation = io.getc
       id = []
       1.upto(len) {
@@ -475,16 +517,18 @@ class String
       val = io.read(len)
     end
     self.new val
+  end
 end
 
 
 
 
-end #Erlang
+end #Erlang module
 
 if $0==__FILE__
 	a = Erlang::Atom.new(:test)
   puts a.encode
   a = Erlang::Binary.new("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
   puts a.encode
+  Erlang::Tuple.decode a,a 
 end

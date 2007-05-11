@@ -1,5 +1,6 @@
 require 'socket'
 require 'digest/md5'
+require 'stringio'
 require 'erlang_util'
 require 'erlang_node'
 require 'erlang_epmd'
@@ -149,7 +150,14 @@ class IncomingConnection < TCPServer
     debug session.class
     do_handshake session
     data = session.read_packet_4 'p' # 112 'passthrough
-    control_msg = Erlang::BaseType.parse data 
+    debug "datasize: #{data.size}"
+    debug data.unpack("H*") 
+    io = StringIO.new data
+    class << io; include Erlang::Net; end 
+    control_msg = Erlang::BaseType.parse io, true
+    debug "ctrl_msg:#{control_msg.to_s}<" 
+    msg = Erlang::BaseType.parse io, true
+    debug "msg: #{msg}"
 
   end
   def do_handshake socket
@@ -167,8 +175,8 @@ class IncomingConnection < TCPServer
 
     tag = 'n'
     #dist = "\0\5"
-    #flags = DFLAG_EXTENDED_REFERENCES | DFLAG_EXTENDED_PIDS_PORTS
-    flags = 0x03fe
+    flags = DFLAG_EXTENDED_REFERENCES | DFLAG_EXTENDED_PIDS_PORTS
+    #flags = 0x03fe
     flags = e_four_bytes_big(flags)
     challenge = rand 2**32
     debug challenge
