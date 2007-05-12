@@ -21,6 +21,8 @@ module Net
   DFLAG_NEW_FUN_TAGS        =0x80
   DFLAG_EXTENDED_PIDS_PORTS =0x100
   DFLAG_EXPORT_PTR_TAG      =0x200
+  
+  attr_accessor :alive
 
   # DEBUG
   def debug str
@@ -45,7 +47,6 @@ module Net
   end
 
   def read_packet_4 tag=nil
-    debug "!!!!!!!!!!!! #{tag}"
     len = self.read_four_bytes_big
     data = nil
     if len
@@ -74,7 +75,18 @@ module Net
     self.write(len+data)
   end
 
-  
+  def read_loop node
+    while @alive
+      data = read_packet_4
+      if data.size==0
+        # tick, tock
+        write '\0\0\0\0'
+      else
+        msg = Erlang::Msg.new data
+        process = node.get msg.recipient
+        process.add_msg msg
+    end
+  end
 
   def gen_digest challenge, node
     Digest::MD5.digest(node.cookie+challenge.to_s)
@@ -138,10 +150,11 @@ end#connection
 
 class IncomingConnection < TCPServer
   include Erlang::Net
+  attr_accessor :alive
   def initialize host, local_node
     @local_node = local_node
     super host, @local_node.port_no
-    
+    @alive
   end
   def accept
     session = super
@@ -149,15 +162,16 @@ class IncomingConnection < TCPServer
     class << session; include Erlang::Net; end
     debug session.class
     do_handshake session
-    data = session.read_packet_4 'p' # 112 'passthrough
-    debug "datasize: #{data.size}"
-    debug data.unpack("H*") 
-    io = StringIO.new data
-    class << io; include Erlang::Net; end 
-    control_msg = Erlang::BaseType.parse io, true
-    debug "ctrl_msg:#{control_msg.to_s}<" 
-    msg = Erlang::BaseType.parse io, true
-    debug "msg: #{msg}"
+    session
+#    data = session.read_packet_4 'p' # 112 'passthrough
+#    debug "datasize: #{data.size}"
+#    debug data.unpack("H*") 
+#    io = StringIO.new data
+#    class << io; include Erlang::Net; end 
+#    control_msg = Erlang::BaseType.parse io, true
+#    debug "ctrl_msg:#{control_msg.to_s}<" 
+#    msg = Erlang::BaseType.parse io, true
+#    debug "msg: #{msg}"
 
   end
   def do_handshake socket

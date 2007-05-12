@@ -67,6 +67,7 @@ class Node
     node.host = host
     node
   end
+
 end #node
 
 class LocalNode < Node
@@ -89,7 +90,7 @@ class LocalNode < Node
     refId[2] = 0
 
     # from OtpNode
-    connections = {}
+    register_process Erlang::NetKernel.new
     mboxes = []
     @acceptor = Acceptor.new self
     @acceptor.run
@@ -98,6 +99,18 @@ class LocalNode < Node
 
   def connect remote_node
     
+  end
+
+
+  def register_process process
+    @procs ||= {}
+    @procs[process.name] if process.name
+    @procs[process.pid] if process.pid
+  end
+
+  def get_process process
+    return nil unless @procs
+    return @procs[process]
   end
 end#class
 
@@ -115,7 +128,7 @@ class Acceptor
     @node.port_no=port
     @t = Thread.new {
       while (session = listener.accept) 
-        puts "accepted connection" 
+        
       end
     }
     resp, socket = Erlang::Epmd.instance.publish_port(@node)

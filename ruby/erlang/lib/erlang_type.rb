@@ -314,6 +314,10 @@ class Tuple
     }
     [tuple_head, elems].flatten
   end
+  
+  def [] idx
+    @val[idx]
+  end
 
   def size
     @val.size
