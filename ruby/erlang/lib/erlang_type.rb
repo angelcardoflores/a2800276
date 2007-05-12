@@ -158,7 +158,7 @@ class Atom < BaseType
   end
   
   def to_s
-    "'#{@atom}'"
+    "'#{@val}'"
   end 
   #  1       2        Len
   #+-----+-------+-----------+

@@ -94,7 +94,8 @@ class LocalNode < Node
     @lock = Mutex.new
     @pid_count = 0
 
-    register_process(Erlang::NetKernel.new(self))
+    @net_kernel=Erlang::NetKernel.new(self) # process register themselves upon creation, don't need to do it.
+    @net_kernel.receive_loop
     @connections = {}
     @acceptor = Acceptor.new self
     @acceptor.run
@@ -118,12 +119,14 @@ class LocalNode < Node
 
   def register_process process
     @procs ||= {}
-    @procs[process.name] if process.name
-    @procs[process.pid] if process.pid
+    @procs[process.name]=process if process.name
+    @procs[process.pid]=process if process.pid
   end
 
   def get_process process
     return nil unless @procs
+    puts process
+    @procs.keys.each{|key| puts "#{key} #{process} #{key==process}"}
     return @procs[process]
   end
 end#class

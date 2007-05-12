@@ -89,9 +89,10 @@ module Net
           write '\0\0\0\0'
         else
           msg = Erlang::Message.parse data
-          debug msg
+          debug msg.recipient
           process = @local_node.get_process msg.recipient
-          process.add_msg msg
+          debug "----> #{msg.recipient} :: #{process}"
+          process.add_message msg
         end
       end
     }

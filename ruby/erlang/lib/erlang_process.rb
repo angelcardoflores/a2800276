@@ -26,9 +26,14 @@ class Process
   def receive timeout=nil, &block
     unless block_given?
       return @queue.shift(timeout)
+      puts "pro -> receiving"
     end
     
     @queue.each timeout, &block
+  end
+
+  def to_s
+    "#Process {#{name}, #{pid}}"
   end
 
 end#class Process
@@ -41,13 +46,16 @@ class NetKernel < Process
   def receive_loop
     Thread.new {
       while @alive
-        handle_msg receive
+        puts "waiting on receive"
+        msg = receive
+        puts "got: #{msg}"
+        handle_msg msg
       end
     }
   end
 
   def handle_msg msg
-    puts msg
+    puts "NetKernel, handling #{msg}"
   end
 
 end

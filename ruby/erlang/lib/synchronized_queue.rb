@@ -9,12 +9,13 @@ class SynchronizedQueue
     @t = Thread.new{Thread.stop}
   end
   def push val
-    @lock.sychronize {
-      @queue.push
+    @lock.synchronize {
+      @queue.push val
       t = @t
       @t = Thread.new{Thread.stop}
       t.kill
     }
+    puts "pushed curle: #{@queue.size}"
   end
   alias << push
   alias enqueue push
@@ -27,12 +28,16 @@ class SynchronizedQueue
     msg = nil
     stop = Time.now+timeout if timeout
     while msg == nil
-      @lock.sychronize {
+      
+      @lock.synchronize {
         msg = @queue.shift
       }
+      puts "waiting on msg? >#{msg}<"
       @t.join(timeout) unless msg
+      puts "woken! #{@queue.size}"
       break if timeout && Time.now >= stop 
     end
+    puts "returning #{msg}"
     msg
   end
 
@@ -47,7 +52,7 @@ class SynchronizedQueue
     found = false
     
     while ! found
-      @lock.sychronize {
+      @lock.synchronize {
         @queue.each {|el|
           found = yield el
           if found
