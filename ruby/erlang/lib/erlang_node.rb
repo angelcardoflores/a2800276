@@ -1,6 +1,8 @@
 require 'erlang_util'
 require 'erlang_epmd'
+require 'erlang_process'
 require 'socket'
+require 'thread'
 module Erlang
 
 class Node
@@ -71,7 +73,7 @@ class Node
 end #node
 
 class LocalNode < Node
-  attr_accessor :epmd_socket
+  attr_accessor :epmd_socket, :connections
   def initialize name, cookie="", port=0
     self.node_name= name
     self.cookie= cookie
@@ -89,17 +91,29 @@ class LocalNode < Node
     refId[1] = 0
     refId[2] = 0
 
-    # from OtpNode
-    register_process Erlang::NetKernel.new
-    mboxes = []
+    @lock = Mutex.new
+    @pid_count = 0
+
+    register_process(Erlang::NetKernel.new(self))
+    @connections = {}
     @acceptor = Acceptor.new self
     @acceptor.run
 
+
   end
 
-  def connect remote_node
-    
+  def generate_pid
+    pid = 0
+    @lock.synchronize {
+      pid = @pid_count
+      @pid_count+=1
+    }
+    Erlang::Pid.new self.full_name, pid, 0, 0
   end
+
+  def add_connection socket
+    @connections[socket.remote_node]=socket
+  end 
 
 
   def register_process process
@@ -126,9 +140,12 @@ class Acceptor
     domain, port, name, addr = listener.addr
     puts listener.addr
     @node.port_no=port
-    @t = Thread.new {
-      while (session = listener.accept) 
-        
+
+    @t = Thread.new { # start listening
+      while (session = listener.accept) # IncomingConnection does handshake 
+        puts "received session!"
+        @node.add_connection session    # publish connection at node
+        session.read_loop               # connection starts reading msg in own thread.
       end
     }
     resp, socket = Erlang::Epmd.instance.publish_port(@node)

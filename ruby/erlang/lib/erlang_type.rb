@@ -145,16 +145,16 @@ class BaseType
 end  
 class Atom < BaseType
   include Erlang
-  
+  attr_accessor :val
   def initialize val
     if val.class != Symbol && val.size > 0 #TODO empty ATOM wtf?
       val = val.to_s.to_sym
     end
-    @atom = val
+    @val = val
   end
 
   def encode
-    base_encode(ATOM, @atom.to_s)
+    base_encode(ATOM, @val.to_s)
   end
   
   def to_s
@@ -222,6 +222,7 @@ class Float
 end
 
 class Number
+  attr_accessor :val
   def initialize val
     @val = val.to_i
   end
@@ -316,6 +317,7 @@ class Tuple
   end
   
   def [] idx
+    puts "TUPLE: #{idx}, #{@val.size}, #{@val[idx]}"
     @val[idx]
   end
 

@@ -5,6 +5,7 @@ require 'erlang_util'
 require 'erlang_node'
 require 'erlang_epmd'
 require 'erlang_type'
+require 'erlang_message'
 module Erlang
 
 
@@ -22,7 +23,7 @@ module Net
   DFLAG_EXTENDED_PIDS_PORTS =0x100
   DFLAG_EXPORT_PTR_TAG      =0x200
   
-  attr_accessor :alive
+  attr_accessor :alive, :local_node, :remote_node
 
   # DEBUG
   def debug str
@@ -48,6 +49,7 @@ module Net
 
   def read_packet_4 tag=nil
     len = self.read_four_bytes_big
+    debug "read_packet_4: #{len}"
     data = nil
     if len
         data = self.read(len)
@@ -75,17 +77,24 @@ module Net
     self.write(len+data)
   end
 
-  def read_loop node
-    while @alive
-      data = read_packet_4
-      if data.size==0
-        # tick, tock
-        write '\0\0\0\0'
-      else
-        msg = Erlang::Msg.new data
-        process = node.get msg.recipient
-        process.add_msg msg
-    end
+  def read_loop 
+    Thread.new {
+      debug "started read loop!"
+      @alive=true
+      while @alive
+        data = read_packet_4
+        debug "read packet!"
+        if data.size==0
+          # tick, tock
+          write '\0\0\0\0'
+        else
+          msg = Erlang::Message.parse data
+          debug msg
+          process = @local_node.get_process msg.recipient
+          process.add_msg msg
+        end
+      end
+    }
   end
 
   def gen_digest challenge, node
@@ -100,7 +109,7 @@ class Connection < TCPSocket
 
 
   def initialize remote_node, local_node
-    remote_node = Erlang::Epmd.instance.lookup_port(remote_node).node
+    @remote_node = Erlang::Epmd.instance.lookup_port(remote_node).node
     super(remote_node.host,remote_node.port_no)
     @node= local_node
     do_handshake
@@ -150,17 +159,18 @@ end#connection
 
 class IncomingConnection < TCPServer
   include Erlang::Net
-  attr_accessor :alive
+  attr_accessor :remote_node
+
   def initialize host, local_node
     @local_node = local_node
     super host, @local_node.port_no
-    @alive
   end
   def accept
     session = super
     debug "accepted connection: #{session}"
     class << session; include Erlang::Net; end
     debug session.class
+    session.local_node=@local_node
     do_handshake session
     session
 #    data = session.read_packet_4 'p' # 112 'passthrough
@@ -180,6 +190,9 @@ class IncomingConnection < TCPServer
     dist = data[0,2]  # 5,5
     flags = data[2,4] # flags
     node_name = data[6, data.length]
+    remote_node=Erlang::Node.new
+    remote_node.node_name = node_name
+    socket.remote_node = remote_node 
     #TODO checks
    
     debug "#{node_name} : connection"
@@ -211,7 +224,7 @@ class IncomingConnection < TCPServer
     tag = 'a'
     digest = gen_digest re_challenge, @local_node
     socket.write_packet_2 tag+digest
-    return true 
+    return true # TODO check handshake results 
   end
 end
 

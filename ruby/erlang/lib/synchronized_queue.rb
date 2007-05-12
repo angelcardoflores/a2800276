@@ -6,7 +6,7 @@ class SynchronizedQueue
   def initialize
     @queue = []
     @lock = Mutex.new
-    @t = Thread.new
+    @t = Thread.new{Thread.stop}
   end
   def push val
     @lock.sychronize {

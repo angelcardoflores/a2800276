@@ -7,8 +7,8 @@ class Process
   def initialize local_node, name=nil
     @local_node=local_node
     @pid=@local_node.generate_pid
-    @name=name
-    @local_node.register(self)
+    @name=name.to_sym
+    @local_node.register_process(self)
     @queue=SynchronizedQueue.new
     @alive=true
   end
@@ -25,7 +25,7 @@ class Process
   #a 'truish' (not null, false) value 
   def receive timeout=nil, &block
     unless block_given?
-      return @queue.shift timeout
+      return @queue.shift(timeout)
     end
     
     @queue.each timeout, &block
