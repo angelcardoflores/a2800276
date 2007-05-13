@@ -63,25 +63,7 @@ module Erlang
   # The longest allowed Erlang atom 
   MAXATOMLENGTH = 255
   
-  def make_size size, num_bytes=2
-    hi = (0xff00 & size) >> 8
-    lo = (0x00ff & size)
-    [hi,lo]
-  end
 
-  def base_encode tag, bytes
-    size = bytes.size
-    if tag[1] ==2
-      hi, lo = make_size(size)
-      [tag[0], hi, lo, bytes].pack("C1C2a#{size}")
-    elsif tag[1] == 4
-      # len == 4
-      [tag[0], size, bytes].pack("C1Na#{size}")
-    else 
-      #len == 0
-      [tag[0], bytes].pack("C1a#{bytes.size}")
-    end
-  end
 
 class BaseType
 
@@ -133,19 +115,39 @@ class BaseType
     type
   end
 
-  def self.get_len io, num_bytes=2
-    len = io.read(num_bytes)
-    if num_bytes==2
-      return d_two_bytes_big(len)
-    elsif num_bytes==4
-      return d_four_bytes_big(len)
-    elsif num_bytes==1
-      return len[0]
+  # Can't do Tuple or Binaries, Arrays are Lists.
+  def make_erl_type val
+    if val == nil
+      return Nil.new
+    elsif val.is_a? Symbol
+      return Atom.new val
+    elsif val.is_a? Integer
+      return Number.new val
+    elsif val.is_a? Array
+      return List.new val
+    elsif val.is_a? ::String
+      return Erlang::String.new val
+    elsif val.is_a? ::Float
+      return Erlang::Float.new val
+    elsif val.is_a? BaseType
+      return val
     else
-      raise "TODO: can't read #{num_bytes} byte length"
+      raise "Protocol Error: can't encode class #{val.class}"
     end
   end
 end  
+
+class Nil < BaseType
+  def to_s
+    '#nil'
+  end
+  def encode
+    e_byte(NIL)
+  end
+  def self.decode
+    return self.new
+  end
+end
 class Atom < BaseType
   include Erlang
   def initialize val
