@@ -116,6 +116,15 @@ class LocalNode < Node
     @connections[socket.remote_node]=socket
   end 
 
+  def send remote_node, msg
+    # get connection from cache
+    con = @connections[remote_node]
+    # if not available, create connection
+    con = Erlang::Connection.new(remote_node, self) unless con # Connection will register itself.
+    # send msg
+    con.write_packet_4 msg
+  end
+
 
   def register_process process
     @procs ||= {}
@@ -160,7 +169,7 @@ end #Acceptor
 end #module
 
 if $0 == __FILE__
-
+  $DEBUG=true
    node = Erlang::LocalNode.new "test@127.0.0.1", "abc"
    Thread.abort_on_exception=true
    while true

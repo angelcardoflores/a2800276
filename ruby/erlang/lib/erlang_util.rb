@@ -1,5 +1,8 @@
 module Erlang
 module Util	
+  def e_byte byte
+    [byte].pack("C")
+  end
 	# converts a numeric to 2 bytes (short) big endian
 	def e_two_bytes_big num
 		[num].pack("n")

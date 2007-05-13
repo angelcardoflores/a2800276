@@ -84,6 +84,9 @@ module Erlang
   end
 
 class BaseType
+
+  attr_accessor :value
+
   def self.parse io, parse_version=false
     io = StringIO.new(io) unless io.kind_of? StringIO
     class << io; include Erlang::Net; end
@@ -145,20 +148,21 @@ class BaseType
 end  
 class Atom < BaseType
   include Erlang
-  attr_accessor :val
   def initialize val
     if val.class != Symbol && val.size > 0 #TODO empty ATOM wtf?
       val = val.to_s.to_sym
     end
-    @val = val
+    @value = val
   end
 
   def encode
-    base_encode(ATOM, @val.to_s)
+    val = @value.to_s
+    len = e_two_bytes_big val.size
+    e_byte(ATOM)+len+val   
   end
   
   def to_s
-    "'#{@val}'"
+    "'#{@value}'"
   end 
   #  1       2        Len
   #+-----+-------+-----------+
@@ -170,13 +174,14 @@ class Atom < BaseType
   end
 end #Atom
 
-class Binary
+class Binary < BaseType
   include Erlang
   def initialize val
-    @val = val
+    @value = val
   end
   def encode
-    base_encode(BIN, @val)
+    len = e_four_bytes_big(@value.len)
+    e_byte(BIN)+len+@value
   end
 
   #   1      4           Len
@@ -197,18 +202,18 @@ end#Binary
 #bytes, chars are Longs
 #end
 
-class Float
+class Float < BaseType
   def initialize val
-    @val = val.to_f
+    @value = val.to_f
   end
 
   def encode
     # -?\d{20}e(+-)\d\d <- total 31 bytes, 0 padded
-    str = sprintf("%.20e", @val)
+    str = sprintf("%.20e", @value)
     while str.size < 31
       str += 0x00
     end
-    base_encode(FLOAT, str)
+    e_byte(FLOAT)+str
   end
 
   #  1         31
@@ -221,26 +226,25 @@ class Float
   end
 end
 
-class Number
-  attr_accessor :val
+class Number < BaseType
   def initialize val
-    @val = val.to_i
+    @value = val.to_i
   end
 
   def encode
-    if (@val & 0xff) == @val
-      return base_encode(SMALLBIG, ""<<@val)
-    elsif (@val<0 || @val < ERLMIN || @val > ERLMAX)
-      #  signed SMALLBIG
-      #  TODO
-      #  tag : 1 byte len : 1 byte sign : len(!) bytes val little endian(!) 
+    if (@value & 0xff) == @val
+      SMALLBIG+[@value].pack
+      return e_byte(SMALL_INT)+e_byte(@value)
+    elsif (
+    elsif (@value >= ERLMIN && @value <= ERLMAX)
+      return e_byte(INT)+e_four_bytes_big(@value)
     else
-      return base_encode(INT, [@val].pack("N"))
+      raise "TODO: Bigint"
     end
   end #encode
 
   def to_s
-    @val.to_s
+    @value.to_s
   end
 
   #  1    1
@@ -264,19 +268,19 @@ class Number
   end
 end#Number
 
-class List
+class List < BaseType
   def initialize arr
-    @val = arr
+    @value = arr
   end
 
   def push val
-    @val.push val
+    @value.push val
   end
 
   def encode
-    list_head = @val.length==0 ? [[NIL[0]].pack("C")] : base_encode(LIST, [@val.size].pack("N"))
+    list_head = @value.length==0 ? e_byte(NIL) : e_byte(LIST)+e_four_bytes_big(@value.size)
     elems = []
-    @val.each {|elem|
+    @value.each {|elem|
       elems.push elem.encode
     }
     [list_head, elems].flatten
@@ -299,30 +303,29 @@ class List
 
 end # List
 
-class Tuple
+class Tuple < BaseType
   def initialize val=nil
-    @val = val
+    @value = val
   end
   def encode 
-    if @val.length < 0xff 
-      tuple_head = base_encode(SMALLTUPLE, [@val].pack("C1")) 
+    if @value.length < 0xff 
+      tuple_head = e_byte(SMALLTUPLE)+e_byte(@value.size)
     else
-      tuple_head = base_encode(LARGETUPLE, [@val].pack("N"))
+      tuple_head = e_byte(LARGETUPLE)+e_four_bytes_big(@value.size)
     end
     elems = []
-    @val.each {|elem|
+    @value.each {|elem|
       elems.push elem.encode
     }
     [tuple_head, elems].flatten
   end
   
   def [] idx
-    puts "TUPLE: #{idx}, #{@val.size}, #{@val[idx]}"
-    @val[idx]
+    @value[idx]
   end
 
   def size
-    @val.size
+    @value.size
   end
 
   #  1       1        N
@@ -354,7 +357,7 @@ class Tuple
 
   def to_s
     str = '{'
-      @val.each_with_index { |val,i|
+      @value.each_with_index { |val,i|
         str += ',' unless i==0
         str += val.to_s
       }
@@ -362,18 +365,19 @@ class Tuple
   end
 end#tuple
 
-class Pid
+class Pid < BaseType
   attr_accessor :node, :id, :serial, :creation
   def initialize node, id, serial, creation
     @node=node
     @id=id
     @serial=serial
     @creation=creation
+    @value = to_s
   end
 
   def encode
-    @node = Erlang::Atom.new(@node) unless @atom.class == Erlang::Atom
-    pay = [PID[0]].pack("C")
+    @node = Erlang::Atom.new(@node) unless @node.is_a? BaseType
+    pay = e_byte(PID)
     pay += @node.encode
     pay += [@id & 0x7fff, @serial & 0x1fff, @creation & 0x3].pack("N2C1")
     pay
@@ -396,16 +400,17 @@ class Pid
   end
 end
 
-class Port
+class Port < BaseType
   attr_accessor :node, :id, :creation
   def initialize node, id, creation
     @node=node
     @id=id
     @creation=creation
+    @value = to_s
   end
   def encode
-    @node = Erlang::Atom.new(@node) unless @atom.class == Erlang::Atom
-    pay = [PORT[0]].pack("C")
+    @node = Erlang::Atom.new(@node) unless @node.is_a? BaseType
+    pay = e_byte(PORT) 
     pay+= @node.encode
     pay+= [@id & 0xfffffff, @creation &0x3].pack("NC")
     pay
@@ -427,28 +432,29 @@ class Port
   end
 end # Port
 
-class Ref
+class Ref < BaseType
   attr_accessor :node, :id, :creation
   def initialize node, id, creation
     @node=node
     @id=id
     @creation=creation
+    @value = to_s
   end
   def encode
-    @node = Erlang::Atom.new(@node) unless @atom.class == Erlang::Atom
+    @node = Erlang::Atom.new(@node) unless @node.is_a? BaseType
     old_style = @id.class != Array || @id.length==1
     if oldstyle
-      pay = [REF[0]].pack("C")
+      pay = e_byte(REF)
       pay+= @node.encode
       pay+= [@id&0x3ffff, @creation&0x3].pack("NC")
     else
-      arity = @id.length > 3 ? 3 : @id.length
-      pay = [NEWREF[0]].pack("C")
-      pay += [arity].pack("n")
+      raise "Protocol Error: more than 12 ids" unless @id.length <= 12
+      pay = e_byte(NEWREF)
+      pay += e_byte(@id.size) 
       pay += @node.encode
       pay += [@creation & 0x3, @id.shift & 0x3ffff].pack("CN")
       @id.each {|i|
-        pay+=[i].pack("N")
+        pay+=e_four_bytes_big(i)
       }
     end
     pay
@@ -493,19 +499,19 @@ class Ref
   end
 end
 
-class String
+class String < BaseType
   def initialize val
-    @val = val
+    @value = val
   end
 
   def encode
-    size = @val.size
+    size = @value.size
     if size == 0
-      return [[NIL[0]].pack("C")]
+      return e_byte(NIL)
     elsif size <= 0xffff
-      return base_encode(STRING, @val)
+      return e_byte(STRING)+e_two_bytes_big(@value.size)+@value
     else
-      arr = @val.split(//)
+      arr = @value.split(//)
       list = List.new(arr)
       return list.encode
     end

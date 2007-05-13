@@ -56,6 +56,16 @@ class NetKernel < Process
 
   def handle_msg msg
     puts "NetKernel, handling #{msg}"
+    case msg.tag
+    when Message::REG_SEND
+    # {'$gen_call',{<'tim@localhost'.292.1>,#Ref<'tim@localhost'.266600> 1|},{'is_auth','tim@localhost'}}
+      message = msg.msg[2]
+      value = message[0]
+      node = message[1]
+
+      puts "is_auth? #{value.value}"
+
+    end 
   end
 
 end

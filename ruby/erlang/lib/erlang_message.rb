@@ -18,7 +18,7 @@ module Erlang
     DEMONITOR_P = 20
     MONITOR_P_EXIT = 21
 
-    attr_accessor :recipient, :control, :msg
+    attr_accessor :recipient, :control, :msg, :tag
     
     def initialize tag, control, msg
       @tag=tag
@@ -31,7 +31,7 @@ module Erlang
       tag = io.getc
       raise "Protocol Error: unexpected msg (#{tag}) expected 112" unless tag = 112
       cntrl = BaseType.parse io, true 
-      tag = cntrl[0].val
+      tag = cntrl[0].value
       recipient = nil
       puts " 000 #{tag} #{tag.class} #{tag==REG_SEND}, #{REG_SEND}, #{REG_SEND.class}" 
       if [REG_SEND, REG_SEND_TT].include? tag
@@ -41,9 +41,14 @@ module Erlang
       else
         recipient = cntrl[2]
       end
+
+      msg = nil
+      if [SEND, REG_SEND, SEND_TT, REG_SEND_TT].include? tag
+        msg = BaseType.parse io, true
+      end
       # todo get message for messages sending those along.
-      m = self.new tag, cntrl, "todo" 
-      m.recipient=recipient.val
+      m = self.new tag, cntrl, msg 
+      m.recipient=recipient.value
       m
     end
 

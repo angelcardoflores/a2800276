@@ -77,6 +77,11 @@ module Net
     self.write(len+data)
   end
 
+  def write_packet_4 data
+    len = e_four_bytes_big(data.size)
+    self.write(len+data)
+  end
+
   def read_loop 
     Thread.new {
       debug "started read loop!"
@@ -112,14 +117,15 @@ class Connection < TCPSocket
   def initialize remote_node, local_node
     @remote_node = Erlang::Epmd.instance.lookup_port(remote_node).node
     super(remote_node.host,remote_node.port_no)
-    @node= local_node
+    @local_node= local_node
     do_handshake
+    @local_node.add_connection(self)
   end
 
   def do_handshake
     flags = DFLAG_EXTENDED_REFERENCES | DFLAG_EXTENDED_PIDS_PORTS
     flags = e_four_bytes_big(flags)
-    payload = "n\5\5"+flags+@node.full_name
+    payload = "n\5\5"+flags+@local_node.full_name
     
     write_packet_2(payload)
 
@@ -141,10 +147,10 @@ class Connection < TCPSocket
     debug "rname: #{rname}"
 
     tag = 'r'
-    digest = gen_digest challenge, @node
+    digest = gen_digest challenge, @local_node
     
     my_challenge = rand 2**32
-    my_digest = gen_digest my_challenge, @node
+    my_digest = gen_digest my_challenge, @local_node
 
     chal = e_four_bytes_big(my_challenge)
     write_packet_2(tag+chal+digest)
