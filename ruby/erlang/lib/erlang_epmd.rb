@@ -32,7 +32,7 @@ class Epmd_Port2_Req
   attr_reader :node
   # node is a string 'alivename@hostname'
   def initialize node
-    @node = Erlang::Node.make_node node
+    @node = Erlang::Node.get_node node
   end
   def encode
     #len = e_two_bytes_big(@node.node_name.size+1)
@@ -68,7 +68,7 @@ class Epmd_Stop_Req
   include Erlang::Util
   attr_reader :node
   def initialize node
-    @node = Erlang::Node.make_node node
+    @node = Erlang::Node.get_node node
   end
   def encode
     #len = e_two_bytes_big(@node.node_name.size+1)
@@ -80,15 +80,29 @@ end
 class Epmd_Port2_Resp
   attr_reader :tag, :result, :node
 
-  def initialize erl_io
+  def initialize erl_io, node
     @io=erl_io
+    @node=node
     decode
   end
 
   def decode
     @tag        = @io.getc
     @result     = @io.getc
-    @node       = Erlang::Node.new.decode @io if @result == 0
+    #@node       = Erlang::Node.new.decode @io if @result == 0
+    
+    port_no    = @io.read_two_bytes_big #d_two_bytes_big(erl_io.read(2))
+    node_type  = @io.getc #erl_io.getc
+    protocol   = @io.getc
+    dist_range = [@io.read_two_bytes_big, @io.read_two_bytes_big]
+    node_name  = @io.read_packet_2
+    extra     = @io.read_packet_2
+    
+    @node.port_no   = port_no
+    @node.type = node_type
+    @node.protocol  = protocol
+    @node.dist_range= dist_range
+    @node.extra     = extra
   end
 
   def to_s
@@ -147,9 +161,18 @@ class Epmd
   end
 
   def lookup_port node
-    node = Erlang::Node.make_node node
+    node = Erlang::Node.get_node node
     req = Epmd_Port2_Req.new(node)
-    resp = send req, Epmd_Port2_Resp
+
+    resp = nil
+        
+    TCPSocket.open(req.node.host,EPMDPORT) {|socket|
+      class << socket; include Erlang::Net; end
+      socket.write_packet_2(req.encode)
+      resp = Epmd_Port2_Resp.new(socket, node)
+    }
+
+    #send req, Epmd_Port2_Resp
     if DEBUG
       puts "Looked up:\n#{node}"
       puts "---"

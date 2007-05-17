@@ -15,7 +15,6 @@ class SynchronizedQueue
       @t = Thread.new{Thread.stop}
       t.kill
     }
-    puts "pushed curle: #{@queue.size}"
   end
   alias << push
   alias enqueue push
@@ -37,7 +36,6 @@ class SynchronizedQueue
       puts "woken! #{@queue.size}"
       break if timeout && Time.now >= stop 
     end
-    puts "returning #{msg}"
     msg
   end
 

@@ -1,4 +1,5 @@
-
+require 'stringio'
+require 'erlang_connection'
 module Erlang
 
   # The tag used for small integers 
@@ -66,15 +67,19 @@ module Erlang
 
 
 class BaseType
-
+  include Erlang::Util
   attr_accessor :value
 
+  def to_bytes
+    e_byte(VERSION)+encode()
+  end
+
   def self.parse io, parse_version=false
-    io = StringIO.new(io) unless io.kind_of? StringIO
+    io = StringIO.new(io) unless io.kind_of? Erlang::Net
     class << io; include Erlang::Net; end
     if parse_version then
       ver = io.getc 
-      raise "Protocol Error: unknown version (#{ver}), expected 131" unless ver == 131
+      raise "Protocol Error: unknown version (#{ver}), expected #{VERSION}" unless ver == VERSION
     end
     tag = io.getc
     
@@ -104,31 +109,31 @@ class BaseType
     when NIL
       type = nil
     when STRING
-      type = Erlang::String.parse io
+      type = Erlang::String.decode(io, tag)
     when LIST
-      type = List.parse io
+      type = List.decode io
     when BIN
-      type = BIN.parse io
+      type = Bin.decode io
     else
       raise "not supported! #{tag}"
     end
     type
-  end
+  end #parse
 
   # Can't do Tuple or Binaries, Arrays are Lists.
-  def make_erl_type val
+  def self.erl val
     if val == nil
       return Nil.new
     elsif val.is_a? Symbol
-      return Atom.new val
+      return Atom.new(val)
     elsif val.is_a? Integer
-      return Number.new val
+      return Number.new(val)
     elsif val.is_a? Array
-      return List.new val
+      return List.new(val)
     elsif val.is_a? ::String
-      return Erlang::String.new val
+      return Erlang::String.new(val)
     elsif val.is_a? ::Float
-      return Erlang::Float.new val
+      return Erlang::Float.new(val)
     elsif val.is_a? BaseType
       return val
     else
@@ -234,12 +239,10 @@ class Number < BaseType
   end
 
   def encode
-    if (@value & 0xff) == @val
-      SMALLBIG+[@value].pack
-      return e_byte(SMALL_INT)+e_byte(@value)
-    elsif (
+    if (@value & 0xff) == @value
+      return e_byte(SMALLINT)+e_byte(@value)
     elsif (@value >= ERLMIN && @value <= ERLMAX)
-      return e_byte(INT)+e_four_bytes_big(@value)
+      return e_byte(INTEGER)+e_four_bytes_big(@value)
     else
       raise "TODO: Bigint"
     end
@@ -283,6 +286,7 @@ class List < BaseType
     list_head = @value.length==0 ? e_byte(NIL) : e_byte(LIST)+e_four_bytes_big(@value.size)
     elems = []
     @value.each {|elem|
+      elem = BaseType.erl elem unless elem.is_a? BaseType # convert to erlang
       elems.push elem.encode
     }
     [list_head, elems].flatten
@@ -317,13 +321,14 @@ class Tuple < BaseType
     end
     elems = []
     @value.each {|elem|
+      elem = BaseType.erl(elem) unless elem.is_a? BaseType #convert to erlang.
       elems.push elem.encode
     }
-    [tuple_head, elems].flatten
+    [tuple_head, elems].to_s
   end
   
   def [] idx
-    @value[idx]
+    BaseType.erl @value[idx]
   end
 
   def size
@@ -386,7 +391,13 @@ class Pid < BaseType
   end
 
   def to_s
-    str = "<#{@node}.#{id}.#{creation}>"
+    str = "#PID<#{@node}.#{id}.#{creation}>"
+  end
+
+  def == pid
+    puts "Here"
+    return false unless pid.is_a? Pid
+    return pid.id==self.id && pid.serial==self.serial && pid.creation == self.creation
   end
 
   #  1       N            4            4           1
@@ -445,18 +456,18 @@ class Ref < BaseType
   def encode
     @node = Erlang::Atom.new(@node) unless @node.is_a? BaseType
     old_style = @id.class != Array || @id.length==1
-    if oldstyle
+    if old_style
       pay = e_byte(REF)
       pay+= @node.encode
       pay+= [@id&0x3ffff, @creation&0x3].pack("NC")
     else
       raise "Protocol Error: more than 12 ids" unless @id.length <= 12
       pay = e_byte(NEWREF)
-      pay += e_byte(@id.size) 
+      pay += e_two_bytes_big(@id.size) 
       pay += @node.encode
-      pay += [@creation & 0x3, @id.shift & 0x3ffff].pack("CN")
+      pay += e_byte(@creation)
       @id.each {|i|
-        pay+=e_four_bytes_big(i)
+        pay+=e_four_bytes_big(i & 0x3ffff)
       }
     end
     pay
@@ -481,12 +492,10 @@ class Ref < BaseType
   #+-----+-----+-----------+-----------+-----------+
   def self.decode io, tag
     if tag==REF
-      puts "REF"
       node = BaseType.parse io
       id = io.read_four_bytes_big & 0x3ffff
       creation = io.getc
     elsif tag==NEWREF
-
       len = io.read_two_bytes_big 
       node = BaseType.parse io
       creation = io.getc
@@ -540,9 +549,11 @@ end
 end #Erlang module
 
 if $0==__FILE__
-	a = Erlang::Atom.new(:test)
-  puts a.encode
-  a = Erlang::Binary.new("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
-  puts a.encode
-  Erlang::Tuple.decode a,a 
+#	a = Erlang::Atom.new(:test)
+#  puts a.encode
+#  a = Erlang::Binary.new("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+#  puts a.encode
+#  Erlang::Tuple.decode a,a 
+
+  
 end

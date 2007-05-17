@@ -93,7 +93,7 @@ module Net
           # tick, tock
           write '\0\0\0\0'
         else
-          msg = Erlang::Message.parse data
+          msg = Erlang::Protocol.parse data
           debug msg.recipient
           process = @local_node.get_process msg.recipient
           debug "----> #{msg.recipient} :: #{process}"
@@ -119,7 +119,9 @@ class Connection < TCPSocket
     super(remote_node.host,remote_node.port_no)
     @local_node= local_node
     do_handshake
+    debug "handshake completed: #{@remote_node.full_name}"
     @local_node.add_connection(self)
+    read_loop
   end
 
   def do_handshake
@@ -197,8 +199,9 @@ class IncomingConnection < TCPServer
     dist = data[0,2]  # 5,5
     flags = data[2,4] # flags
     node_name = data[6, data.length]
-    remote_node=Erlang::Node.new
+    remote_node=Erlang::Node.get_node node_name
     remote_node.node_name = node_name
+    remote_node.port_no = socket.peeraddr[1]
     socket.remote_node = remote_node 
     #TODO checks
    

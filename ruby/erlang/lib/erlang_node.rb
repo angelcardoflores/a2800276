@@ -10,15 +10,10 @@ class Node
   attr_accessor :type, :protocol, :extra
   attr_writer :host, :dist_range, :cookie, :port_no, :type, :protocol
   attr_reader :node_name
-  def decode erl_io
-    @port_no    = d_two_bytes_big(erl_io.read(2))
-    @node_type  = erl_io.getc
-    @protocol   = erl_io.getc
-    @dist_range = [d_two_bytes_big(erl_io.read(2)), d_two_bytes_big(erl_io.read(2))]
-    @node_name  = erl_io.read_packet_2
-    @extra      = erl_io.read_packet_2
-    self
-  end
+
+#  def decode erl_io
+#       self
+#  end
   
   def host
     @host ||= 'localhost'
@@ -47,6 +42,8 @@ class Node
   end
 
   def full_name
+    puts @node_name
+    puts @host
     @node_name+'@'+@host
   end
 
@@ -60,69 +57,91 @@ class Node
     "host : #{host}\n"+
     "extra : #{@extra}\n"
   end
+  
+  def self.add_to_cache node
+    @cache ||={}
+    @cache[node.full_name]=node
+  end
+  
+  def self.get_cached_node str
+    @cache ||= {}
+    @cache[str]
+  end
 
-  def self.make_node str
-    return str if str.kind_of?  self
-    node = self.new
-    name, host = str.split('@') #TODO check
-    node.node_name = name
-    node.host = host
+  def self.get_node str
+    
+    # Only allow one instance per Node, if we're passed a node, see 
+    # we should pass it back
+    name = (str.is_a? Node) ? str.full_name : str.to_s
+    node = get_cached_node name 
+    unless node
+      node = Node.new(name)
+      add_to_cache node 
+    end
     node
   end
 
+  private
+
+  def initialize node_name
+    self.node_name=node_name
+  end
+  
 end #node
 
 class LocalNode < Node
   attr_accessor :epmd_socket, :connections
-  def initialize name, cookie="", port=0
-    self.node_name= name
-    self.cookie= cookie
-    @port_no=port
-    init
-  end
 
   def init
-    # from OtpLocalNode
-    serial = 0
-    pidCount = 1
-    portCount = 1
-    refId = []
-    refId[0] = 1
-    refId[1] = 0
-    refId[2] = 0
 
-    @lock = Mutex.new
-    @pid_count = 0
+    @lock = Mutex.new # lock to generate pids
+    @pid_count = 0 # unique pid counter
 
-    @net_kernel=Erlang::NetKernel.new(self) # process register themselves upon creation, don't need to do it.
+    @net_kernel=NetKernel.new(self) # process register themselves upon
+                                    # creation, don't need to do it.
     @net_kernel.receive_loop
-    @connections = {}
-    @acceptor = Acceptor.new self
+
+    @connections = {}               # stores connections to other nodes
+    @acceptor = Acceptor.new self   # listens for connections from other nodes
     @acceptor.run
 
 
+    resp, socket = Epmd.instance.publish_port(self) # register self with EPMD
+    @epmd_socket = socket
+    #HANDLE resp.result != 0
+
+
   end
 
+  # generate new pid (Erlang::Pid) for this nodes processes
   def generate_pid
     pid = 0
     @lock.synchronize {
       pid = @pid_count
       @pid_count+=1
     }
-    Erlang::Pid.new self.full_name, pid, 0, 0
+    Erlang::Pid.new(self.full_name, pid, 0, 0)
   end
-
+  
+  # add a new connection to a remote_node
   def add_connection socket
     @connections[socket.remote_node]=socket
   end 
 
-  def send remote_node, msg
+  # recipient = remote_node or pid
+  # Send a protocol message to a recipient.
+  # Recipient is either a Node, a node name (String, Symbol) 
+  def send recipient, msg
+    recipient = recipient.node.value if recipient.is_a? Pid
+    recipient = Node.get_node recipient
     # get connection from cache
-    con = @connections[remote_node]
+    con = @connections[recipient]
     # if not available, create connection
-    con = Erlang::Connection.new(remote_node, self) unless con # Connection will register itself.
+    puts recipient
+    con = Erlang::Connection.new(recipient, self) unless con # Connection will register itself.
     # send msg
-    con.write_packet_4 msg
+    puts "Sending #{msg} to #{recipient}"
+    con.write_packet_4 msg.to_bytes
   end
 
 
@@ -133,10 +152,36 @@ class LocalNode < Node
   end
 
   def get_process process
-    return nil unless @procs
+    unless @procs
+      raise "Error: looking up #{process} no procs registered"
+    end
     puts process
-    @procs.keys.each{|key| puts "#{key} #{process} #{key==process}"}
+    @procs.keys.each{|key| puts "#{key} #{process} #{key==process} #{key.class} #{process.class}"}
     return @procs[process]
+  end
+  
+  def self.get_node name, cookie="", port=0
+    node= get_cached_node name
+#    node = Node.get_node name
+#puts node
+#    if node && !node.is_a?(LocalNode)
+#      raise "Protocol Error: node #{name} already instantiate as remote node" 
+#    end
+
+    unless node
+      node = LocalNode.new(name, cookie, port)
+      Node.add_to_cache node
+    end
+    node
+
+  end
+
+  private
+  def initialize name, cookie="", port=0
+    self.node_name= name
+    self.cookie= cookie
+    @port_no=port
+    init
   end
 end#class
 
@@ -160,9 +205,6 @@ class Acceptor
         session.read_loop               # connection starts reading msg in own thread.
       end
     }
-    resp, socket = Erlang::Epmd.instance.publish_port(@node)
-    @node.epmd_socket = socket
-    #HANDLE resp.result != 0
   end
 
 end #Acceptor
@@ -170,7 +212,7 @@ end #module
 
 if $0 == __FILE__
   $DEBUG=true
-   node = Erlang::LocalNode.new "test@127.0.0.1", "abc"
+   node = Erlang::LocalNode.get_node "test@127.0.0.1", "abc"
    Thread.abort_on_exception=true
    while true
      #resp = Erlang::Epmd.instance.lookup_port(node)
