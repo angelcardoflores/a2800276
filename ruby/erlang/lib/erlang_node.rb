@@ -155,9 +155,9 @@ class LocalNode < Node
     unless @procs
       raise "Error: looking up #{process} no procs registered"
     end
-    puts process
-    @procs.keys.each{|key| puts "#{key} #{process} #{key==process} #{key.class} #{process.class}"}
-    return @procs[process]
+    puts "!!! #{process}"
+    @procs.keys.each{|key| puts "#{key} #{process} #{key==process} #{key.hash} #{process.hash}"}
+    @procs[process]
   end
   
   def self.get_node name, cookie="", port=0

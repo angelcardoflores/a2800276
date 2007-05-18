@@ -26,7 +26,6 @@ class Process
   def receive timeout=nil, &block
     unless block_given?
       return @queue.shift(timeout)
-      puts "pro -> receiving"
     end
     
     @queue.each timeout, &block

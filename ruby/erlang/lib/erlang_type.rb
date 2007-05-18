@@ -74,6 +74,17 @@ class BaseType
     e_byte(VERSION)+encode()
   end
 
+  def == other
+    return false unless other.is_a? BaseType
+    other.value == self.value
+  end
+
+  alias eql? ==
+
+  def hash 
+    to_s.hash
+  end
+
   def self.parse io, parse_version=false
     io = StringIO.new(io) unless io.kind_of? Erlang::Net
     class << io; include Erlang::Net; end
@@ -375,7 +386,9 @@ end#tuple
 class Pid < BaseType
   attr_accessor :node, :id, :serial, :creation
   def initialize node, id, serial, creation
-    @node=node
+    @node= node.is_a?(Atom) ? node : Atom.new(node)
+    puts "-----> #{node}"
+    puts "---!-> #{@node}"
     @id=id
     @serial=serial
     @creation=creation
@@ -395,9 +408,8 @@ class Pid < BaseType
   end
 
   def == pid
-    puts "Here"
     return false unless pid.is_a? Pid
-    return pid.id==self.id && pid.serial==self.serial && pid.creation == self.creation
+    return pid.node == self.node && pid.id==self.id && pid.serial==self.serial && pid.creation == self.creation
   end
 
   #  1       N            4            4           1
