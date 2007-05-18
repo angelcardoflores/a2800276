@@ -4,6 +4,7 @@ module Erlang
 
 class Process
   attr_accessor :name, :pid, :alive
+
   def initialize local_node, name=nil
     @local_node=local_node
     @pid=@local_node.generate_pid
@@ -69,7 +70,7 @@ class NetKernel < Process
       cookie = msg.cookie
      
       puts "Cookie: #{cookie.class}" 
-      response = Send.make(cookie, to_pid, Tuple.new([ref, :ok]))
+      response = Send.make(cookie, to_pid, Tuple.new([ref, :yes]))
       puts "net_kernel sending #{response} to #{to_pid}"
       @local_node.send to_pid, response
     else
@@ -78,13 +79,4 @@ class NetKernel < Process
   end
 
 end
-
-
-
-
-
-
-
-
-
 end # Erlang
