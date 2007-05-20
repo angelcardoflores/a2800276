@@ -256,8 +256,9 @@ end
 end
 
 if $0 == __FILE__
-  node = Erlang::LocalNode.new 'test@localhost', 'abc'
-  rnode = Erlang::Node.new 
+  node = Erlang::LocalNode.get_node 'test@localhost', 'abc'
+  puts node
+  rnode = Erlang::Node.get_node 'tim@localhost'
   rnode.node_name='tim@localhost'
   con = Erlang::Connection.new rnode, node
   

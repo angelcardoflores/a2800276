@@ -3,7 +3,7 @@ require 'erlang_type'
 
 module Erlang
 
-def Erlang.to_erl str, vals=[]
+def Erlang.to_erl str, *vals
   t = TermHelper.new str, vals  
   t.parse
 end
@@ -72,7 +72,7 @@ class TermHelper
       if @io.peek == sep
         @io.read_compare sep
       elsif @io.peek != stop
-        raise "Error: expected ',' or #{stop}, got: #{@io.peek}" 
+        raise "Error: expected '#{sep}' or #{stop}, got: #{@io.peek}" 
       end
       consume_whitespace
     end
@@ -90,12 +90,19 @@ class TermHelper
     vals = parse_data '{', '}'
     Tuple.new vals
   end
-
+  
+  # these don't work, TODO
+  #   a ref might be #Ref<1.2.3>
+  #   the internal values get parsed as 1.2(float)
   def parse_ref
     vals = parse_data '#Ref<', '>', '.'
+    puts vals
     Ref.new *vals
   end
 
+  # these don't work, TODO
+  #   a pid might be <1.2.3>
+  #   the internal values get parsed as 1.2(float)
   def parse_pid
     vals == parse_data('<', '>', '.')
     Pid.new *vals

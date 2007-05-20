@@ -240,7 +240,6 @@ class Binary < BaseType
   end
 
   def to_s
-    puts @value
     str = '<<'
     vals = @value.split(//)
     vals.map! {|v| v[0]}
@@ -416,7 +415,6 @@ class Tuple < BaseType
     else
       raise "Protocol Error: unknown tag (#{tag}) for Tuple"
     end
-    puts arity
     val = []
     1.upto(arity){ |i|
       type = BaseType.parse(io)

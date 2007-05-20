@@ -98,6 +98,7 @@ class LocalNode < Node
   def init
     @lock = Mutex.new # lock to generate pids
     @pid_count = 0    # unique pid counter
+    @ref_count = 0    # unique reference counter
 
     @net_kernel=NetKernel.new(self) # process register themselves upon
                                     # creation, don't need to do it.
@@ -119,6 +120,25 @@ class LocalNode < Node
       @pid_count+=1
     }
     Erlang::Pid.new(self.full_name, pid, 0, 0)
+  end
+
+  def make_ref
+    ref = 0
+    @lock.synchronize {
+      ref = @ref_count
+      @ref_count += 1
+    }
+    Erlang::Ref.new(self.full_name, ref, 0)
+  end
+
+  def spawn node, mod, func, args
+    pr = (get_process(:spawn)) || Process.new(self, :spawn) # create a process to handle spawn requests.
+    m = Erlang.to_erl "{'$gen_call', {$, $}, {spawn, #{mod}, #{func}, $, $}}",pr.pid, self.make_ref, BaseType.erl(args), pr.pid 
+    puts "!!!! #{m}"
+    msg = RegSend.make(pr.pid, '', 'net_kernel', m)
+    send(node, msg)
+    pr.receive
+
   end
   
   # add a new connection to a remote_node, used internally.
@@ -178,6 +198,7 @@ class LocalNode < Node
   end
 
   private
+
   def initialize name, cookie="", port=0
     self.node_name= name
     self.cookie= cookie

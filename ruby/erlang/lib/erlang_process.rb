@@ -1,4 +1,5 @@
 require 'synchronized_queue'
+require 'erlang_term'
 
 module Erlang
 
@@ -69,8 +70,9 @@ class NetKernel < Process
       to_pid = msg.from_pid
       cookie = msg.cookie
      
-      puts "Cookie: #{cookie.class}" 
-      response = Send.make(cookie, to_pid, Tuple.new([ref, :yes]))
+      puts "Cookie: #{cookie.class}"
+      tuple = Erlang.to_erl("{$, yes}", ref) 
+      response = Send.make(cookie, to_pid, tuple)
       puts "net_kernel sending #{response} to #{to_pid}"
       @local_node.send to_pid, response
     else

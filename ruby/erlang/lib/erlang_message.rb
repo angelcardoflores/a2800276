@@ -104,7 +104,8 @@ class Send < Protocol
   end
 
   def self.make cookie, to_pid, msg
-    self.new(Tuple.new([SEND, cookie, to_pid]), msg)
+    cntrl = Erlang.to_erl("{#{SEND}, $, $}", cookie, to_pid)
+    self.new(cntrl, msg)
   end
 end
 
@@ -118,7 +119,8 @@ class RegSend < Protocol
   end
 
   def self.make from_pid, cookie, to_name, msg
-    cntrl = Tuple.new([REG_SEND, from_pid, Atom.new(''), to_name])
+    #cntrl = Tuple.new([REG_SEND, from_pid, Atom.new(''), to_name])
+    cntrl = Erlang.to_erl("{#{REG_SEND}, $, '', #{to_name}}", from_pid)
     self.new cntrl, msg
   end
 end # regsend
