@@ -20,9 +20,8 @@ class Ping
     #ping = Erlang.to_erl("{is_auth, '#{local_node.full_name}'}")
     #msg = Tuple.new([:'$gen_call', tuple, ping])
     msg = Erlang.to_erl("{'$gen_call', {$,$}, {is_auth, '#{@local_node.full_name}'}}", process.pid, @local_node.make_ref)
-    proto = RegSend.make(process.pid, Atom.new(''), :net_kernel, msg)
 
-    @local_node.send @remote_node, proto
+    process.send_reg @remote_node, 'net_kernel', msg
     puts "HERE"
     return process.receive
 

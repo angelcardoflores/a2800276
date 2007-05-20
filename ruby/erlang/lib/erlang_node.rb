@@ -133,10 +133,8 @@ class LocalNode < Node
 
   def spawn node, mod, func, args
     pr = (get_process(:spawn)) || Process.new(self, :spawn) # create a process to handle spawn requests.
-    m = Erlang.to_erl "{'$gen_call', {$, $}, {spawn, #{mod}, #{func}, $, $}}",pr.pid, self.make_ref, BaseType.erl(args), pr.pid 
-    puts "!!!! #{m}"
-    msg = RegSend.make(pr.pid, '', 'net_kernel', m)
-    send(node, msg)
+    msg = Erlang.to_erl "{'$gen_call', {$, $}, {spawn, #{mod}, #{func}, $, $}}",pr.pid, self.make_ref, BaseType.erl(args), pr.pid 
+    pr.send_reg(node, 'net_kernel', msg)
     pr.receive
 
   end
@@ -146,10 +144,12 @@ class LocalNode < Node
     @connections[socket.remote_node]=socket
   end 
 
+
+  
   # recipient = remote_node or pid
   # Send a protocol message to a recipient.
   # Recipient is either a Node, a node name, or a pid.
-  def send recipient, msg
+  def send_internal recipient, msg
     # connections are maintained by node, in case the recipient
     # is a Pid, extract the node.
     recipient = recipient.node.value if recipient.is_a? Pid

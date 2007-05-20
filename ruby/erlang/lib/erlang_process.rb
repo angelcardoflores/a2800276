@@ -33,6 +33,17 @@ class Process
     @queue.each timeout, &block
   end
 
+  def send pid, msg
+    protocol_msg = Send.make('', pid, msg)
+    @local_node.send_internal pid, protocol_msg
+  end
+
+  def send_reg node, name, msg
+    protocol_msg = RegSend.make(self.pid, '', name, msg)
+    @local_node.send_internal node, protocol_msg
+  end
+  
+
   def to_s
     "#Process {#{name}, #{pid}}"
   end
@@ -71,10 +82,10 @@ class NetKernel < Process
       cookie = msg.cookie
      
       puts "Cookie: #{cookie.class}"
-      tuple = Erlang.to_erl("{$, yes}", ref) 
-      response = Send.make(cookie, to_pid, tuple)
+      response = Erlang.to_erl("{$, yes}", ref) 
+      #response = Send.make(cookie, to_pid, tuple)
       puts "net_kernel sending #{response} to #{to_pid}"
-      @local_node.send to_pid, response
+      send to_pid, response
     else
       raise "Protocol Error: don't know how to handle: #{msg.class}"
     end 
