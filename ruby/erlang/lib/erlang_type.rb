@@ -52,8 +52,13 @@ module Erlang
   # The tag used for new style references 
   NEWREF =      114
 
+  # NOT SUPPORTED other than parsing.
+  NEW_CACHE =   78
+  CACHED_ATOM = 67
+
   # The version number used to mark serialized Erlang terms 
   VERSION =     131
+
 
   # The largest value that can be encoded as an integer 
   ERLMAX = (1 << 27) -1
@@ -124,7 +129,13 @@ class BaseType
     when LIST
       type = List.decode io
     when BIN
-      type = Bin.decode io
+      type = Binary.decode io
+    when NEW_CACHE
+      puts "WARNING: NEW_CACHE experimental"
+      type = NewCache.decode io
+    when CACHED_ATOM
+      puts "WARNING: CACHED_ATOM experimental"
+      type = CachedAtom.decode io
     else
       raise "not supported! #{tag}"
     end
@@ -167,7 +178,7 @@ end
 class Atom < BaseType
   include Erlang
   def initialize val
-    if val.class != Symbol && val.size > 0 #TODO empty ATOM wtf?
+    if (!val.is_a? BaseType) && val.class != Symbol && val.size > 0 #TODO empty ATOM wtf?
       val = val.to_s.to_sym
     end
     @value = val
@@ -195,10 +206,27 @@ end #Atom
 class Binary < BaseType
   include Erlang
   def initialize val
-    @value = val
+    @value = check val
+  end
+
+  def check val
+    return val if val.is_a? ::String
+    if val.is_a? Enumerable
+      str = ""
+      val.each {|v|
+        if v <= 0xff
+          str << v
+        else
+          raise "Protocol Error: binary values must be bytes, offending value: #{v}"
+        end
+      }
+    else
+      raise "Protocol Error: value (#{@val}) must be String or Enumerable with numbers"
+    end
+    str
   end
   def encode
-    len = e_four_bytes_big(@value.len)
+    len = e_four_bytes_big(@value.size)
     e_byte(BIN)+len+@value
   end
 
@@ -209,6 +237,16 @@ class Binary < BaseType
   def self.decode io
     len = io.read_four_bytes_big
     self.new io.read(len) 
+  end
+
+  def to_s
+    puts @value
+    str = '<<'
+    vals = @value.split(//)
+    vals.map! {|v| v[0]}
+    str += vals.join(',')
+    str +='>>'
+    str
   end
 end#Binary
 
@@ -241,6 +279,10 @@ class Float < BaseType
   def self.decode io
     f_str = io.read(31)
     self.new f_str.to_f
+  end
+
+  def to_s
+    @value.to_s
   end
 end
 
@@ -318,6 +360,16 @@ class List < BaseType
     list  
   end
 
+  def to_s
+    str = '['
+      @value.each_with_index { |val,i|
+        str += ',' unless i==0
+        str += val.to_s
+      }
+    str += ']'
+  end
+
+
 end # List
 
 class Tuple < BaseType
@@ -364,6 +416,7 @@ class Tuple < BaseType
     else
       raise "Protocol Error: unknown tag (#{tag}) for Tuple"
     end
+    puts arity
     val = []
     1.upto(arity){ |i|
       type = BaseType.parse(io)
@@ -387,8 +440,6 @@ class Pid < BaseType
   attr_accessor :node, :id, :serial, :creation
   def initialize node, id, serial, creation
     @node= node.is_a?(Atom) ? node : Atom.new(node)
-    puts "-----> #{node}"
-    puts "---!-> #{@node}"
     @id=id
     @serial=serial
     @creation=creation
@@ -540,6 +591,10 @@ class String < BaseType
     end
   end
 
+  def to_s
+    '"'+@value+'"'
+  end
+
   #   1     2        Len
   #+-----+-----+-----------------+
   #| 107 | Len |  Characters     |
@@ -554,6 +609,48 @@ class String < BaseType
     self.new val
   end
 end
+class NewCache < BaseType
+  def initialize idx, val
+    @value = BaseType.erl(val)
+    @idx = idx
+  end
+  #  1       1       2         Len
+  #+----+-------+--------+-----------+
+  #| 78 | index |  Len   | Atom name |
+  #+----+-------+--------+-----------+
+  def encode
+    index = e_byte(@idx)
+    e_byte(NEW_CACHE)+index+@value.encode
+  end
+  def self.decode io
+    idx = io.getc
+    value = Atom.decode(io) 
+    self.new idx, value
+  end
+  def to_s
+    "#{self.class} idx: #{@idx} val: #{@value}"
+  end
+end
+
+class CachedAtom < BaseType
+  def initialize value
+    @value = value
+  end
+  #   1      1
+  #+----+-------+
+  #| 67 | index |
+  #+----+-------+
+  def self.decode io
+    val = io.getc
+    self.new(val)
+  end
+  def self.encode 
+    e_byte(CACHED_ATOM)+e_byte(@value)
+  end
+  def to_s
+    "#{self.class} idx: #{@value}"
+  end
+end # CachedAtom
 
 
 
