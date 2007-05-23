@@ -57,6 +57,14 @@ class Protocol
       return Send.new(cntrl, msg)
     when REG_SEND
       return RegSend.new(cntrl, msg)
+    when LINK
+      return Link.new(cntrl)
+    when UNLINK
+      return Unlink.new(cntrl)
+    when EXIT
+      return Exit.new cntrl
+    when EXIT2
+      return Exit2.new cntrl
     else
       return self.new(cntrl, msg)
     end
@@ -124,6 +132,47 @@ class RegSend < Protocol
     self.new cntrl, msg
   end
 end # regsend
+
+class Link < Protocol
+  attr_accessor :from_pid, :to_pid
+  def initialize cntrl
+    super
+    @from_pid = cntrl[1]
+    @to_pid = cntrl[2]
+  end
+  def self.make from_pid, to_pid
+    cntrl = Tuple.new([LINK, from_pid, to_pid])
+    self.new cntrl
+  end
+end # class Link
+
+class Unlink < Link
+  def self.make from_pid, to_pid
+    cntrl = Tuple.new [UNLINK, from_pid, to_pid]
+    self.new cntrl
+  end
+end
+
+class Exit < Protocol
+  attr_accessor :from_pid, :to_pid, :reason
+  def initialize cntrl
+    super
+    @from_pid = cntrl[1]
+    @to_pid = cntrl[2]
+    @reason = cntrl[3]
+  end
+  def self.make from_pid, to_pid, reason
+    cntrl = Tuple.new [EXIT, from_pid, to_pid, reason]
+    self.new cntrl
+  end
+end
+
+class Exit2 < Exit
+  def self.make from_pid, to_pid, reason
+    cntrl = Tuple.new [EXIT2, from_pid, to_pid, reason]
+    self.new cntrl
+  end
+end
 
 
 end # Erlang

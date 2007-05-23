@@ -10,7 +10,7 @@ class Node
 
   attr_accessor :extra
   attr_writer   :host, :dist_range, :cookie, :port_no, :type, :protocol
-  attr_reader   :node_name
+  attr_reader   :node_name, :creation
 
 #  def decode erl_io
 #       self
@@ -94,6 +94,7 @@ end #node
 
 class LocalNode < Node
   attr_accessor :epmd_socket, :connections
+  attr_reader :processes
 
   def init
     @lock = Mutex.new # lock to generate pids
@@ -108,18 +109,19 @@ class LocalNode < Node
     @acceptor = Acceptor.new self   # listens for new connections from other nodes
 
     resp, socket = Epmd.instance.publish_port(self) # register self with EPMD
+    @creation = resp.creation
     @epmd_socket = socket
     #HANDLE resp.result != 0
   end
 
   # generate new pid (Erlang::Pid) for this nodes processes
   def generate_pid
-    pid = 0
+    id = 0
     @lock.synchronize {
-      pid = @pid_count
+      id = @pid_count
       @pid_count+=1
     }
-    Erlang::Pid.new(self.full_name, pid, 0, 0)
+    Erlang::Pid.new(self.full_name, id, 0, @creation)
   end
 
   def make_ref
@@ -128,7 +130,7 @@ class LocalNode < Node
       ref = @ref_count
       @ref_count += 1
     }
-    Erlang::Ref.new(self.full_name, ref, 0)
+    Erlang::Ref.new(self.full_name, ref, @creation)
   end
 
   def spawn node, mod, func, args
@@ -136,11 +138,16 @@ class LocalNode < Node
     msg = Erlang.to_erl "{'$gen_call', {$, $}, {spawn, #{mod}, #{func}, $, $}}",pr.pid, self.make_ref, BaseType.erl(args), pr.pid 
     pr.send_reg(node, 'net_kernel', msg)
     pr.receive
-
   end
   
+  def disconnect_node node
+    # make safe TODO
+    con = @connections.delete node
+    con.close if con
+  end
   # add a new connection to a remote_node, used internally.
   def add_connection socket
+    # make safe TODO
     @connections[socket.remote_node]=socket
   end 
 
@@ -167,20 +174,20 @@ class LocalNode < Node
   # Assign a newly created Process to a node. The Process will do this itself
   # during creation.
   def register_process process
-    @procs ||= {}
-    @procs[process.name]=process if process.name
-    @procs[process.pid]=process if process.pid
+    @processes ||= {}
+    @processes[process.name]=process if process.name
+    @processes[process.pid]=process if process.pid
   end
 
   # Look up a process. When a connection recieves a packet, it looks up the
   # recipient using this method.
   def get_process process
-    unless @procs
+    unless @processes
       raise "Error: looking up #{process} no procs registered"
     end
     #puts "!!! #{process}"
     #@procs.keys.each{|key| puts "#{key} #{process} #{key==process} #{key.hash} #{process.hash}"}
-    @procs[process]
+    @processes[process]
   end
  
   # Not entirely sure yet if this is a good idea:

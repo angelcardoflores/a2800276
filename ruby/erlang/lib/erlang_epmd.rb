@@ -96,10 +96,10 @@ class Epmd_Port2_Resp
     protocol   = @io.getc
     dist_range = [@io.read_two_bytes_big, @io.read_two_bytes_big]
     node_name  = @io.read_packet_2
-    extra     = @io.read_packet_2
+    extra      = @io.read_packet_2
     
     @node.port_no   = port_no
-    @node.type = node_type
+    @node.type      = node_type
     @node.protocol  = protocol
     @node.dist_range= dist_range
     @node.extra     = extra
@@ -124,10 +124,7 @@ class Epmd_Alive2_Resp
   end
   def decode
     @tag = @io.getc
-    puts @io
-    puts @tag
     @result = @io.getc
-    puts @result
     @creation = d_two_bytes_big(@io.read(2))
   end
   def to_s
