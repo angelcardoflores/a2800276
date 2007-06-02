@@ -235,6 +235,7 @@ public class Matcher {
 	 */
 	public List<Constructor> matchingConstructors(Class clazz) {
 		List<Constructor> list = new LinkedList<Constructor>();
+		if (!matchConstructors) return list;
 		if (!classMatches(clazz) || !constructorsMatch(clazz))
 			return list;
 		for (Constructor con : clazz.getConstructors()) {
@@ -255,6 +256,7 @@ public class Matcher {
 	 */
 	public List<Field> matchingFields(Class clazz) {
 		List<Field> list = new LinkedList<Field>();
+		if (!matchFields) return list;
 		if (!classMatches(clazz) || !fieldsMatch(clazz))
 			return list;
 		for (Field field : clazz.getDeclaredFields()) {
@@ -278,12 +280,13 @@ public class Matcher {
 	 */
 	public List<Field> matchingStaticFields(Class clazz) {
 		List<Field> list = new LinkedList<Field>();
+		if (!matchStaticFields) return list;
 		if (!classMatches(clazz) || !fieldsMatch(clazz))
 			return list;
 		for (Field field : clazz.getDeclaredFields()) {
 			int modifier = field.getModifiers();
 			if (Modifier.isPublic(modifier) && Modifier.isStatic(modifier)) {
-				if (matchesPattern(this.fieldsPatterns, field.getName())) {
+				if (matchesPattern(this.staticFieldPatterns, field.getName())) {
 					list.add(field);
 				}
 			}
@@ -300,6 +303,7 @@ public class Matcher {
 	 */
 	public List<Method> matchingMethods(Class clazz) {
 		List<Method> list = new LinkedList<Method>();
+		if (!matchMethods) return list;
 		if (!classMatches(clazz) || !methodsMatch(clazz))
 			return list;
 		for (Method method : clazz.getMethods()) {
@@ -323,6 +327,7 @@ public class Matcher {
 	 */
 	public List<Method> matchingStaticMethods(Class clazz) {
 		List<Method> list = new LinkedList<Method>();
+		if (!matchStaticMethods) return list;
 		if (!classMatches(clazz) || !methodsMatch(clazz))
 			return list;
 		for (Method method : clazz.getMethods()) {
@@ -577,6 +582,7 @@ public class Matcher {
 		for (Pattern pattern : list) {
 			
 			m = pattern.matcher(str);
+			System.out.println(pattern+":"+str+":"+m.matches());
 			if (m.matches()) {
 				return true;
 			}

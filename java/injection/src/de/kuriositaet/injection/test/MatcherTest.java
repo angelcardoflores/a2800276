@@ -2,14 +2,13 @@ package de.kuriositaet.injection.test;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
 
 import de.kuriositaet.injection.Matcher;
-
-
-
 
 public class MatcherTest {
 
@@ -60,5 +59,22 @@ public class MatcherTest {
 		matcher = new Matcher().forSubclassesOf(TestBase.class).forFields();
 		assertFalse(matcher.matches(this.getClass()));
 		assertTrue(matcher.matches(TestClass.class));
+	}
+	
+	@Test public void Matches () throws SecurityException, NoSuchFieldException {
+		Matcher matcher = new Matcher().forFields("^test.*");
+		List<Field> list = matcher.matchingFields(TestClass.class);
+		Field expected = TestClass.class.getField("testString");
+		Field actual = list.get(0);
+		assertEquals(expected, actual);
+		
+		matcher = new Matcher().forStaticFields("^test.*");
+		list = matcher.matchingStaticFields(TestClass.class);
+		expected = TestClass.class.getField("testStaticString");
+		actual = list.get(0);
+		System.out.println(actual);
+		assertEquals(expected, actual);
+		
+		
 	}
 }
