@@ -29,7 +29,7 @@ public class ReflectionHelper {
 	
 	public static List<Constructor> getPublicConstructors (Class clazz) {
 		List<Constructor> list = new LinkedList<Constructor>();
-		for (Constructor c : clazz.getConstructors()()) {
+		for (Constructor c : clazz.getConstructors()) {
 			if (Modifier.isPublic(c.getModifiers())){
 				list.add(c);
 			}

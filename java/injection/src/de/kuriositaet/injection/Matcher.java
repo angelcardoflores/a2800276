@@ -7,6 +7,7 @@ import java.lang.reflect.Modifier;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.Arrays;
 
 public class Matcher {
 
@@ -61,13 +62,13 @@ public class Matcher {
 
 	/**
 	 * Classes added through this methods are explicitly matched, any classes
-	 * added by this method are gurannteed to match.
+	 * added by this method are guranteed to match.
 	 * 
 	 * @param clazz
 	 * @return
 	 */
 	public Matcher forClass(Class... classes) {
-		addToList(this.explicitClassMatches, classes);
+		this.explicitClassMatches.addAll(Arrays.asList(classes));
 		return this;
 	}
 
@@ -380,6 +381,7 @@ public class Matcher {
 	private boolean matchSubclass(Class clazz) {
 		if (!this.matchSubclasses)
 			return true;
+		
 		for (Class c : this.superclasses) {
 			if (isSubclassOf(c, clazz)) {
 				return true;
@@ -396,10 +398,12 @@ public class Matcher {
 	 * @return
 	 */
 	private static boolean isSubclassOf(Class superC, Class test) {
+		
 		Class c = null;
 		while ((c = test.getSuperclass()) != null) {
-			if (c == superC)
+			if (c.equals(superC))
 				return true;
+			test=c;
 		}
 		return false;
 	}
@@ -571,6 +575,7 @@ public class Matcher {
 			return true;
 		java.util.regex.Matcher m = null;
 		for (Pattern pattern : list) {
+			
 			m = pattern.matcher(str);
 			if (m.matches()) {
 				return true;
