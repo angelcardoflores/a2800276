@@ -23,7 +23,7 @@ public class Binding {
 		
 	}
 	
-	public Binding bind (Object [] objs) {
+	public Binding bind (Object... objs) {
 		if (objs.length != signature.length)
 			throw new BindingException ("Trying to bind values of length:"+objs.length+" to signature of length: "+signature.length);
 		this.boundValues = objs;
@@ -118,7 +118,7 @@ public class Binding {
 		return Arrays.equals(this.signature, signature);
 	}
 	
-	public <T> T createInstance (Injector i, Class<T> clazz) {
+	protected <T> T createInstance (Injector i, Class<T> clazz) {
 		if (!matches(clazz)) {
 			throw new BindingException ("Class:"+clazz.getName()+" does not match. Cannot create instance.");
 		}
@@ -165,7 +165,7 @@ public class Binding {
 		return values;
 	}
 
-	public List<Method> injectMethods(Injector injector, Object instance) {
+	protected List<Method> injectMethods(Injector injector, Object instance) {
 		List<Method> injected = new LinkedList<Method>();
 		Class clazz = instance.getClass();
 		for (Matcher m : this.matchers) {
@@ -183,7 +183,7 @@ public class Binding {
 		}
 		return injected;
 	}
-	public List<Method> injectStaticMethods(Injector injector, Object instance) {
+	protected List<Method> injectStaticMethods(Injector injector, Object instance) {
 		List<Method> injected = new LinkedList<Method>();
 		Class clazz = instance.getClass();
 		for (Matcher m : this.matchers) {
@@ -202,7 +202,7 @@ public class Binding {
 		return injected;
 	}
 
-	public List<Field> injectFields(Injector injector, Object instance) {
+	protected List<Field> injectFields(Injector injector, Object instance) {
 		List<Field> injected = new LinkedList<Field>();
 		Class clazz = instance.getClass();
 		for (Matcher m : this.matchers) {
@@ -221,7 +221,7 @@ public class Binding {
 		return injected;
 	}
 	
-	public List<Field> injectStaticFields(Injector injector, Object instance) {
+	protected List<Field> injectStaticFields(Injector injector, Object instance) {
 		List<Field> injected = new LinkedList<Field>();
 		Class clazz = instance.getClass();
 		for (Matcher m : this.matchers) {

@@ -6,11 +6,15 @@ public class TestClass extends TestBase implements TestInterface{
 	public static String testStaticString;
 	
 	public TestClass () {}
-	public TestClass (String str){}
+	public TestClass (String str){
+		this.testString = str;
+	}
 	
 	public String testMethod () {
 		return testString;}
-	public void testMethod (String str){}
+	public void testMethod (String str){
+		this.testString = str;
+	}
 	
 	public static void testStaticMethod () {}
 }

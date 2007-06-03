@@ -9,6 +9,35 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.Arrays;
 
+/**
+ * 
+ * The Matcher class is used to define a set of members. Use `matches(Class)` to
+ * determine whether a class contains members that match the current definitions. The matching
+ * members can be accessed using the methods: `matchingConstructors(Class)`, 
+ * `matchingFunctions(Class)`, etc.
+ * 
+ * Matcher contains two (three?) types of methods to define the match. The methods
+ * `forConstructors`, `forFields(...)`, `forStaticFields(...)`, `forMethods(...)` and 
+ * `forStaticMethods(...)` define which types of members to match.
+ * 
+ * By default, all classes containing these members will be eligible for matching. The
+ * second type of methods restricts to the matches only to specific classes. These methods
+ * are `forClasses`, `forSubclassesOf(...)`, `forPackage(...)` and
+ * `forImplemenationsOf(...)`. Each filter methods per se will combine it's arguments 
+ * with a boolean OR. E.g. if three interfaces are passed to `forImplementationsOf(...)`
+ * classes matching any of the interfaces match. Different filter methods are combined
+ * with a boolean AND. E.g. If `forImplemenationsOf(...)` is called with interfaces A and B
+ * and `forPackage(...)` with package 'com.example.example' any class implementing A or B
+ * is matched as long as it is contained in the package 'com.example.example'.
+ * 
+ * The (arguably) third type of class filter is the `forClass(...)` filter which will match
+ * all specifically enumerated classes whether they match one of the other class filters or
+ * not.
+ * 
+ * 
+ * @author tim
+ *
+ */
 public class Matcher {
 
 	private boolean matchClasses;
@@ -68,6 +97,12 @@ public class Matcher {
 	 * @return
 	 */
 	public Matcher forClass(Class... classes) {
+		for (Class clazz : classes) {
+			int mod = clazz.getModifiers();
+			if (Modifier.isAbstract(mod) || Modifier.isInterface(mod)) {
+				throw new MatchingException (clazz.getSimpleName()+"is abstract or an interface and not eligible for explicit matching");
+			}
+		}
 		this.explicitClassMatches.addAll(Arrays.asList(classes));
 		return this;
 	}
@@ -86,6 +121,10 @@ public class Matcher {
 		addToList(this.classPatterns, patterns);
 		return this;
 	}
+	
+	public Matcher forClasses(String... patterns) {
+		return this.forClasses(toPattern(patterns));
+	}
 
 	/**
 	 * Classes need to be a subclass of one of the provided classes and match
@@ -96,6 +135,11 @@ public class Matcher {
 	 */
 	public Matcher forSubclassesOf(Class... superclasses) {
 		this.matchSubclasses = true;
+		for (Class clazz : superclasses) {
+			if (Modifier.isFinal(clazz.getModifiers())) {
+				throw new MatchingException(clazz.getSimpleName()+" is final, can't match subclasses.");
+			}
+		}
 		addToList(this.superclasses, superclasses);
 		return this;
 	}
@@ -120,6 +164,11 @@ public class Matcher {
 	 */
 	public Matcher forImplementationsOf(Class... interfaces) {
 		this.matchImplementation = true;
+		for (Class inter : interfaces) {
+			if (!inter.isInterface()) {
+				throw new MatchingException (inter.toString()+" is not an interface, can't match implementations.");
+			}
+		}
 		addToList(this.interfaces, interfaces);
 		return this;
 	}
@@ -306,7 +355,7 @@ public class Matcher {
 		if (!matchMethods) return list;
 		if (!classMatches(clazz) || !methodsMatch(clazz))
 			return list;
-		for (Method method : clazz.getMethods()) {
+		for (Method method : clazz.getDeclaredMethods()) {
 			int modifier = method.getModifiers();
 			if (Modifier.isPublic(modifier) && !Modifier.isStatic(modifier)) {
 				if (matchesPattern(this.methodPatterns, method.getName())) {
@@ -330,7 +379,7 @@ public class Matcher {
 		if (!matchStaticMethods) return list;
 		if (!classMatches(clazz) || !methodsMatch(clazz))
 			return list;
-		for (Method method : clazz.getMethods()) {
+		for (Method method : clazz.getDeclaredMethods()) {
 			int modifier = method.getModifiers();
 			if (Modifier.isPublic(modifier) && Modifier.isStatic(modifier)) {
 				if (matchesPattern(this.methodPatterns, method.getName())) {
@@ -582,7 +631,7 @@ public class Matcher {
 		for (Pattern pattern : list) {
 			
 			m = pattern.matcher(str);
-			System.out.println(pattern+":"+str+":"+m.matches());
+			//System.out.println(pattern+":"+str+":"+m.matches());
 			if (m.matches()) {
 				return true;
 			}

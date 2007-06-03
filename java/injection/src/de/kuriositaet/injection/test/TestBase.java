@@ -1,5 +1,5 @@
 package de.kuriositaet.injection.test;
 
-public class TestBase {
+public abstract class TestBase {
 
 }

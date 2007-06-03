@@ -9,12 +9,12 @@ public class Injector {
 	// private Configuration[] configurations;
 	private List<Binding> bindings;
 
-	private List<Class> initializedClasses;
+	private static List<Class> initializedClasses = new LinkedList<Class>();
 
 	public Injector(Configuration... configurations) {
 		// this.configurations = configurations;
 		this.bindings = new LinkedList<Binding>();
-		this.initializedClasses = new LinkedList<Class>();
+		
 
 		for (Configuration config : configurations) {
 			for (Binding b : config.getBindings()) {
@@ -47,8 +47,9 @@ public class Injector {
 		}
 
 		if (!staticMembersInitialized(clazz)) {
-			injectStaticFields(instance);
-			injectStaticMethods(instance);
+			boolean f = injectStaticFields(instance);
+			boolean m = injectStaticMethods(instance);
+			if (f || m) initializedClasses.add(clazz);
 		}
 
 		injectFields(instance);
@@ -58,11 +59,14 @@ public class Injector {
 	}
 
 	private boolean staticMembersInitialized(Class clazz) {
-		return this.initializedClasses.contains(clazz);
+		//System.out.println(clazz + "--" +initializedClasses.contains(clazz));
+		
+		return initializedClasses.contains(clazz);
 	}
 
-	private void injectStaticFields(Object instance) {
+	private boolean injectStaticFields(Object instance) {
 		List<Field> injectedFields = new LinkedList<Field>();
+		boolean injection = false;
 		for (Binding binding : this.bindings) {
 			List<Field> injected = binding.injectStaticFields(this, instance);
 			if (contains(injectedFields, injected)) {
@@ -70,12 +74,15 @@ public class Injector {
 						+ binding);
 			} else {
 				injectedFields.addAll(injected);
+				injection = injected.size() > 0;
 			}
 		}
+		return injection;
 	}
 
-	private void injectStaticMethods(Object instance) {
+	private boolean injectStaticMethods(Object instance) {
 		List<Method> injectedMethods = new LinkedList<Method>();
+		boolean injection = false;
 		for (Binding binding : this.bindings) {
 			List<Method> injected = binding.injectStaticMethods(this, instance);
 			if (contains(injectedMethods, injected)) {
@@ -83,8 +90,10 @@ public class Injector {
 						+ binding);
 			} else {
 				injectedMethods.addAll(injected);
+				injection = injected.size()>0;
 			}
 		}
+		return injection;
 	}
 
 	private void injectFields(Object instance) {
