@@ -4,17 +4,20 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 public class Injector {
 	// private Configuration[] configurations;
 	private List<Binding> bindings;
+
+	private Stack<Class> stack;
 
 	private static List<Class> initializedClasses = new LinkedList<Class>();
 
 	public Injector(Configuration... configurations) {
 		// this.configurations = configurations;
 		this.bindings = new LinkedList<Binding>();
-		
+		this.stack = new Stack<Class>();
 
 		for (Configuration config : configurations) {
 			for (Binding b : config.getBindings()) {
@@ -24,6 +27,12 @@ public class Injector {
 	}
 
 	public <T> T createInstance(Class<T> clazz) {
+		if (this.stack.contains(clazz)) {
+			throw new BindingException("Circular binding definition for: "+clazz.getSimpleName());
+		} else {
+			stack.push(clazz);
+		}
+		
 		T instance = null;
 		for (Binding b : this.bindings) {
 			if (b.hasMatchingConstructor(clazz)) {
@@ -40,7 +49,7 @@ public class Injector {
 			try {
 				instance = clazz.newInstance();
 			} catch (Throwable e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 				throw new BindingException("Could not instantiate: "
 						+ clazz.getSimpleName() + " caught: " + e.toString());
 			}
@@ -54,9 +63,12 @@ public class Injector {
 
 		injectFields(instance);
 		injectMethods(instance);
-
+		
+		stack.pop();
 		return instance;
 	}
+	
+	
 
 	private boolean staticMembersInitialized(Class clazz) {
 		//System.out.println(clazz + "--" +initializedClasses.contains(clazz));

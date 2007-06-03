@@ -34,6 +34,11 @@ public class BinderTest {
 	@Test (expected = BindingException.class) public void bindException () {
 		Matcher matcher = new Matcher().forConstructors();
 		Binding binding = new Binding (String.class, String.class);
+		// binding doesn't match signature.
 		binding.bind("123").to(matcher);
+	}
+	
+	@Test (expected = BindingException.class) public void noSignature () {
+		Binding binding = new Binding();
 	}
 }
