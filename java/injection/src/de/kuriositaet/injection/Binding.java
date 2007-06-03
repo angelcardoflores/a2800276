@@ -203,7 +203,7 @@ public class Binding {
 						method.invoke(instance,
 								instantiateBoundValues(injector));
 					} catch (Throwable e) {
-						e.printStackTrace();
+						//e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ method + " : " + e.toString());
 					}
@@ -225,7 +225,7 @@ public class Binding {
 						method.invoke(instance,
 								instantiateBoundValues(injector));
 					} catch (Throwable e) {
-						e.printStackTrace();
+						//e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ method + " : " + e.toString());
 					}
@@ -245,7 +245,7 @@ public class Binding {
 					try {
 						field.set(instance,instantiateBoundValues(injector)[0]);
 					} catch (Throwable e) {
-						e.printStackTrace();
+						//e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ field + " : " + e.toString());
 					}
@@ -267,7 +267,7 @@ public class Binding {
 								.set(instance,
 										instantiateBoundValues(injector)[0]);
 					} catch (Throwable e) {
-						e.printStackTrace();
+						//e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ field + " : " + e.toString());
 					}

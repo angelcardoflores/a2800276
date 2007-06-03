@@ -79,5 +79,6 @@ public class InjectorTest {
 		Binding binding = new Binding(TestInterface.class).bind(TestClass.class).to(m);
 		Injector injector = new Injector(new Configuration(binding));
 		TestClass test = injector.createInstance(TestClass.class);
+		
 	}
 }
