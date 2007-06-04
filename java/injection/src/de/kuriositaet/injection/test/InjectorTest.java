@@ -11,7 +11,6 @@ import de.kuriositaet.injection.BindingException;
 import de.kuriositaet.injection.Configuration;
 import de.kuriositaet.injection.Injector;
 import de.kuriositaet.injection.Matcher;
-import de.kuriositaet.injection.MatchingException;
 
 
 public class InjectorTest {
@@ -73,12 +72,28 @@ public class InjectorTest {
 		
 	}
 	
-	@Test (expected = BindingException.class) public void errorTest () {
+	@Test (expected = BindingException.class) public void circularBinding () {
 		Matcher m = new Matcher().forMethods("setTestInterface");
 		// circular injection
 		Binding binding = new Binding(TestInterface.class).bind(TestClass.class).to(m);
 		Injector injector = new Injector(new Configuration(binding));
 		TestClass test = injector.createInstance(TestClass.class);
 		
+	}
+	
+	@Test public void circularBindingOK () {
+		Matcher m = new Matcher().forMethods("setTestInterface");
+		// circular injection
+		Binding binding = new Binding(TestInterface.class).bind(new TestClass()).to(m);
+		Injector injector = new Injector(new Configuration(binding));
+		TestClass test = injector.createInstance(TestClass.class);	
+	}
+	
+	@Test (expected = BindingException.class) public void redundantBinding () {
+		Matcher m = new Matcher().forFields("DEBUG");
+		Binding binding = new Binding(boolean.class).bind(false).to(m);
+		Binding binding2 = new Binding(boolean.class).bind(false).to(m);
+		Injector injector = new Injector(new Configuration(binding, binding2));
+		TestClass test = injector.createInstance(TestClass.class);
 	}
 }

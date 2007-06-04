@@ -26,7 +26,7 @@ public class TestClass extends TestBase implements TestInterface {
 	}
 	
 	public void setTestInterface (TestInterface t){
-		System.out.println("Seeting: "+t);
+		//System.out.println("Setting: "+t);
 		this.testInterface = t;
 	}
 	
