@@ -7,6 +7,12 @@ public class TestClass extends TestBase implements TestInterface {
 
 	private TestInterface testInterface;
 
+	private String str3;
+
+	private String str2;
+
+	private String str1;
+
 
 	public static String testStaticString;
 
@@ -15,6 +21,12 @@ public class TestClass extends TestBase implements TestInterface {
 
 	public TestClass(String str) {
 		this.testString = str;
+	}
+	
+	public TestClass (String str1, String str2, String str3) {
+		this.str1 = str1;
+		this.str2 = str2;
+		this.str3 = str3;
 	}
 
 	public String testMethod() {
@@ -39,5 +51,17 @@ public class TestClass extends TestBase implements TestInterface {
 	
 	public boolean debug () {
 		return this.DEBUG;
+	}
+
+	public String getStr1() {
+		return str1;
+	}
+
+	public String getStr2() {
+		return str2;
+	}
+
+	public String getStr3() {
+		return str3;
 	}
 }

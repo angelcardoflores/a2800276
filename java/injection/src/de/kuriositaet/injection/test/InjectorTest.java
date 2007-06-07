@@ -125,4 +125,21 @@ public class InjectorTest {
 		assertFalse(testA.testString==testB.testString);		
 	}
 	
+	@Test public void subBindingTest () {
+		Matcher m = new Matcher().forConstructors();
+		Class str = String.class;
+		Binding b = new Binding (str).bind(str).singleton();
+		Binding b2 = new Binding (str).bind(str);
+		Binding b3 = new Binding (str, str).bind(b, b2);
+		Binding b4 = new Binding (str, str, str).bind(b3, b).to(m);
+		Injector inj = new Injector(new Configuration(b4));
+		TestClass test1 = inj.createInstance(TestClass.class);
+		TestClass test2 = inj.createInstance(TestClass.class);
+		assertTrue(test1.getStr1()==test2.getStr1());
+		assertFalse(test1.getStr2()==test2.getStr2());
+		assertTrue(test1.getStr3()==test2.getStr3());
+		
+		
+	}
+	
 }

@@ -267,12 +267,22 @@ public class Binding {
 	
 
 	private Object[] instantiateWithBindings(Injector inj) {
-		Object [] values = new Object[this.getSignature().length];
-		
+		Object [] values = new Object[0];
+		for (Binding b : this.subBindings) {
+			values = concatenate(values, b.instantiateBoundValues(inj));
+		}
 		return values;
 	}
 
 	
+
+	private static Object[] concatenate(Object[] values, Object[] objects) {
+		Object [] newArray = new Object[values.length + objects.length];
+		System.arraycopy(values, 0, newArray, 0, values.length);
+		System.arraycopy(objects, 0, newArray, values.length, objects.length);
+		return newArray;
+		
+	}
 
 	protected List<Method> injectMethods(Injector injector, Object instance) {
 		List<Method> injected = new LinkedList<Method>();
