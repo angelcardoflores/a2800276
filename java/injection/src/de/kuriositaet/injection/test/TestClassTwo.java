@@ -16,4 +16,8 @@ public class TestClassTwo {
 		return this.testInterfaceImpl.debug();
 	}
 	
+	public TestInterface getTestInterface() {
+		return this.testInterfaceImpl;
+	}
+	
 }

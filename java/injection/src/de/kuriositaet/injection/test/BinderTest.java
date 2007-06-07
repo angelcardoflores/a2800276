@@ -41,4 +41,34 @@ public class BinderTest {
 	@Test (expected = BindingException.class) public void noSignature () {
 		Binding binding = new Binding();
 	}
+	
+	@Test (expected = BindingException.class) public void bindObjectsException () {
+		Binding binding = new Binding(String.class).bind("");
+		Binding binding2 = new Binding(String.class).bind(binding).bind("");
+	}
+	
+	@Test (expected = BindingException.class) public void bindBindingsException () {
+		Binding binding = new Binding(String.class).bind("");
+		Binding binding2 = new Binding(String.class).bind("").bind(binding);
+	}
+	
+	@Test (expected = BindingException.class) public void bindDoesntMatchException () {
+		Binding b = new Binding(String.class).bind("");
+		Binding b2 = new Binding(String.class).bind(b, b);
+	}
+	
+	@Test (expected = BindingException.class) public void subbindingTest() {
+		Binding b = new Binding(TestInterface.class).bind(TestClass.class);
+		Binding b2 = new Binding(String.class).bind("");
+		Binding b3 = new Binding(String.class, TestInterface.class, String.class).bind(b2, b, b2);
+		assertTrue(true);
+		b3.bind(b2);
+	}
+	
+	@Test (expected = BindingException.class) public void subbindingSignatureNoMatch(){
+		Binding b = new Binding(TestInterface.class).bind(TestClass.class);
+		Binding b2 = new Binding(TestInterface.class).bind(b);
+		assertTrue(true);
+		Binding b3 = new Binding(String.class).bind(b2);
+	}
 }

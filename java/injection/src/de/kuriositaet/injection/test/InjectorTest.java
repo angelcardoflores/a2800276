@@ -96,4 +96,33 @@ public class InjectorTest {
 		Injector injector = new Injector(new Configuration(binding, binding2));
 		TestClass test = injector.createInstance(TestClass.class);
 	}
+	
+	@Test public void singletonTest () {
+		Matcher m = new Matcher().forConstructors();
+		Binding binding = new Binding(TestInterface.class).bind(TestClass.class).to(m).singleton();
+		Injector injector = new Injector(new Configuration(binding));
+		TestClassTwo test1 = injector.createInstance(TestClassTwo.class);
+		TestClassTwo test2 = injector.createInstance(TestClassTwo.class);
+		assertTrue(test1.getTestInterface() == test2.getTestInterface());
+		
+		binding = new Binding(TestInterface.class).bind(TestClass.class).to(m);
+		injector = new Injector(new Configuration(binding));
+		test1 = injector.createInstance(TestClassTwo.class);
+		test2 = injector.createInstance(TestClassTwo.class);
+		assertFalse(test1.getTestInterface() == test2.getTestInterface());
+		
+		m.forPackage("de.kuriositaet.injection.test");
+		binding = new Binding(String.class).bind(String.class).to(m).singleton();
+		injector = new Injector(new Configuration(binding));
+		TestClass testA = injector.createInstance(TestClass.class);
+		TestClass testB = injector.createInstance(TestClass.class);
+		assertTrue(testA.testString==testB.testString);
+		
+		binding = new Binding(String.class).bind(String.class).to(m);
+		injector = new Injector(new Configuration(binding));
+		testA = injector.createInstance(TestClass.class);
+		testB = injector.createInstance(TestClass.class);
+		assertFalse(testA.testString==testB.testString);		
+	}
+	
 }

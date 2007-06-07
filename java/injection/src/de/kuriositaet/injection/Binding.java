@@ -5,15 +5,27 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class Binding {
 	private Class[] signature;
 
 	private Object[] boundValues;
+	private List<Binding> subBindings;
+	private boolean usingBindings;
 
 	private List<Matcher> matchers;
+
+	/**
+	 * Used to store object instances if this Binding is scoped Singleton.
+	 */
+	private Map<Class, Object> instances;
+	private boolean singleton;
+	
+	
 
 	/**
 	 * The constructor is passed the <i>signature</i> of the members we're
@@ -33,6 +45,9 @@ public class Binding {
 	}
 
 	public Binding bind(Object... objs) {
+		if (this.usingBindings) {
+			throw new BindingException("Can't mix binding Classes and binding Bindings.");
+		}
 		if (objs.length != signature.length)
 			throw new BindingException("Trying to bind values of length:"
 					+ objs.length + " to signature of length: "
@@ -40,9 +55,55 @@ public class Binding {
 		this.boundValues = objs;
 		return this;
 	}
+	
+	public Binding bind(Binding...bindings){
+		if (this.boundValues!=null){
+			throw new BindingException("Can't mix binding Classes and binding Bindings.");
+		}
+		
+		if (this.subBindings==null) {
+			this.subBindings = new LinkedList<Binding>();
+		}
+		
+		// add to (existing) list of subbindings.
+		for (Binding b: bindings) {
+			this.subBindings.add(b);
+		}
+		
+		int sigSize=0;
+		for (Binding b: this.subBindings) {
+			sigSize+=b.getSignature().length;
+		}
+		
+		if (sigSize > this.getSignature().length) {
+			throw new BindingException("Signatures of subbindings too long.");
+		}
+		
+		//check that new list of subbindings corresponds to signature.
+		
+		int i=0;
+		for (Binding b: this.subBindings){
+			for (Class c : b.getSignature()){
+				if (!c.equals(this.getSignature()[i++])){
+					throw new BindingException("Signature of subbindings doesn't match. Found:"+c.getSimpleName()+" expected:"+this.getSignature()[--i]);
+				}
+			}
+		}
+			
+		this.usingBindings = true;
+		return this;
+	}
+	
+
 
 	public Binding to(Matcher matcher) {
 		this.matchers.add(matcher);
+		return this;
+	}
+
+	public Binding singleton() {
+		this.singleton = true;
+		this.instances = new HashMap<Class, Object>();
 		return this;
 	}
 
@@ -161,7 +222,7 @@ public class Binding {
 					try {
 						instance = (T) cons.newInstance(parameters);
 					} catch (Throwable e) {
-						//e.printStackTrace();
+						// e.printStackTrace();
 						throw new BindingException("Could not instantiate: "
 								+ clazz.getSimpleName() + " caught: "
 								+ e.toString());
@@ -180,11 +241,21 @@ public class Binding {
 	 * @return
 	 */
 	private Object[] instantiateBoundValues(Injector inj) {
+		if (this.usingBindings) {
+			return instantiateWithBindings(inj);
+		}
 		Object[] values = new Object[boundValues.length];
 		Object obj = null;
 		for (int i = 0; i != boundValues.length; ++i) {
 			if (boundValues[i] instanceof Class) {
-				obj = inj.createInstance((Class) boundValues[i]);
+				if (this.singleton && this.instances.containsKey(boundValues[i])) {
+					obj = this.instances.get(boundValues[i]);
+				} else {
+					obj = inj.createInstance((Class) boundValues[i]);
+					if (this.singleton) {
+						this.instances.put((Class)boundValues[i], obj);
+					}
+				}
 			} else {
 				obj = boundValues[i];
 			}
@@ -192,6 +263,16 @@ public class Binding {
 		}
 		return values;
 	}
+
+	
+
+	private Object[] instantiateWithBindings(Injector inj) {
+		Object [] values = new Object[this.getSignature().length];
+		
+		return values;
+	}
+
+	
 
 	protected List<Method> injectMethods(Injector injector, Object instance) {
 		List<Method> injected = new LinkedList<Method>();
@@ -203,7 +284,7 @@ public class Binding {
 						method.invoke(instance,
 								instantiateBoundValues(injector));
 					} catch (Throwable e) {
-						//e.printStackTrace();
+						// e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ method + " : " + e.toString());
 					}
@@ -225,7 +306,7 @@ public class Binding {
 						method.invoke(instance,
 								instantiateBoundValues(injector));
 					} catch (Throwable e) {
-						//e.printStackTrace();
+						// e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ method + " : " + e.toString());
 					}
@@ -243,9 +324,11 @@ public class Binding {
 			for (Field field : m.matchingFields(clazz)) {
 				if (matchesSignature(field.getType())) {
 					try {
-						field.set(instance,instantiateBoundValues(injector)[0]);
+						field
+								.set(instance,
+										instantiateBoundValues(injector)[0]);
 					} catch (Throwable e) {
-						//e.printStackTrace();
+						// e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ field + " : " + e.toString());
 					}
@@ -267,7 +350,7 @@ public class Binding {
 								.set(instance,
 										instantiateBoundValues(injector)[0]);
 					} catch (Throwable e) {
-						//e.printStackTrace();
+						// e.printStackTrace();
 						throw new BindingException("Could not bind values to :"
 								+ field + " : " + e.toString());
 					}
@@ -276,6 +359,10 @@ public class Binding {
 			}
 		}
 		return injected;
+	}
+
+	public Class[] getSignature() {
+		return signature;
 	}
 
 }

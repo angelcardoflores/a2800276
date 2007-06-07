@@ -36,6 +36,11 @@ public class MatcherTest {
 		assertTrue(matcher.matches(TestClass.class));
 		assertFalse(matcher.matches(this.getClass()));
 		
+		matcher = new Matcher().forConstructors();
+		assertTrue(matcher.matches(String.class));
+		matcher = new Matcher().forConstructors().forClass(TestClass.class);
+		assertFalse(matcher.matches(String.class));
+		
 		
 	}
 	

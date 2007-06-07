@@ -12,31 +12,38 @@ import java.util.Arrays;
 /**
  * 
  * The Matcher class is used to define a set of members. Use `matches(Class)` to
- * determine whether a class contains members that match the current definitions. The matching
- * members can be accessed using the methods: `matchingConstructors(Class)`, 
- * `matchingFunctions(Class)`, etc.
+ * determine whether a class contains members that match the current
+ * definitions. The matching members can be accessed using the methods:
+ * `matchingConstructors(Class)`, `matchingFunctions(Class)`, etc.
  * 
- * Matcher contains two (three?) types of methods to define the match. The methods
- * `forConstructors`, `forFields(...)`, `forStaticFields(...)`, `forMethods(...)` and 
- * `forStaticMethods(...)` define which types of members to match.
+ * Matcher contains two (three?) types of methods to define the match. The
+ * methods `forConstructors`, `forFields(...)`, `forStaticFields(...)`,
+ * `forMethods(...)` and `forStaticMethods(...)` define which types of members
+ * to match.
  * 
- * By default, all classes containing these members will be eligible for matching. The
- * second type of methods restricts to the matches only to specific classes. These methods
- * are `forClasses`, `forSubclassesOf(...)`, `forPackage(...)` and
- * `forImplemenationsOf(...)`. Each filter methods per se will combine it's arguments 
- * with a boolean OR. E.g. if three interfaces are passed to `forImplementationsOf(...)`
- * classes matching any of the interfaces match. Different filter methods are combined
- * with a boolean AND. E.g. If `forImplemenationsOf(...)` is called with interfaces A and B
- * and `forPackage(...)` with package 'com.example.example' any class implementing A or B
- * is matched as long as it is contained in the package 'com.example.example'.
+ * By default, all classes containing these members will be eligible for
+ * matching. The second type of methods restricts to the matches only to
+ * specific classes. These methods are `forClasses`, `forSubclassesOf(...)`,
+ * `forPackage(...)` and `forImplemenationsOf(...)`. Each filter methods per se
+ * will combine it's arguments with a boolean OR. E.g. if three interfaces are
+ * passed to `forImplementationsOf(...)` classes matching any of the interfaces
+ * match. Different filter methods are combined with a boolean AND. E.g. If
+ * `forImplemenationsOf(...)` is called with interfaces A and B and
+ * `forPackage(...)` with package 'com.example.example' any class implementing A
+ * or B is matched as long as it is contained in the package
+ * 'com.example.example'.
  * 
- * The (arguably) third type of class filter is the `forClass(...)` filter which will match
- * all specifically enumerated classes whether they match one of the other class filters or
- * not.
+ * The (arguably) third type of class filter is the `forClass(...)` filter which
+ * will match all specifically enumerated classes whether they match one of the
+ * other class filters or not. The behaviour might be a little confusing: if only
+ * explicit class matches and no filter like `forImplementationsOf(...)` are provided
+ * the matcher only takes the specific matches into account. If filters are provided, 
+ * the matcher matches the explicitly named classes AND any other class matching the 
+ * filter. I.e. the filters aren't applied to the named classes.
  * 
  * 
  * @author tim
- *
+ * 
  */
 public class Matcher {
 
@@ -100,7 +107,9 @@ public class Matcher {
 		for (Class clazz : classes) {
 			int mod = clazz.getModifiers();
 			if (Modifier.isAbstract(mod) || Modifier.isInterface(mod)) {
-				throw new MatchingException (clazz.getSimpleName()+"is abstract or an interface and not eligible for explicit matching");
+				throw new MatchingException(
+						clazz.getSimpleName()
+								+ "is abstract or an interface and not eligible for explicit matching");
 			}
 		}
 		this.explicitClassMatches.addAll(Arrays.asList(classes));
@@ -121,7 +130,7 @@ public class Matcher {
 		addToList(this.classPatterns, patterns);
 		return this;
 	}
-	
+
 	public Matcher forClasses(String... patterns) {
 		return this.forClasses(toPattern(patterns));
 	}
@@ -137,7 +146,8 @@ public class Matcher {
 		this.matchSubclasses = true;
 		for (Class clazz : superclasses) {
 			if (Modifier.isFinal(clazz.getModifiers())) {
-				throw new MatchingException(clazz.getSimpleName()+" is final, can't match subclasses.");
+				throw new MatchingException(clazz.getSimpleName()
+						+ " is final, can't match subclasses.");
 			}
 		}
 		addToList(this.superclasses, superclasses);
@@ -166,7 +176,8 @@ public class Matcher {
 		this.matchImplementation = true;
 		for (Class inter : interfaces) {
 			if (!inter.isInterface()) {
-				throw new MatchingException (inter.toString()+" is not an interface, can't match implementations.");
+				throw new MatchingException(inter.toString()
+						+ " is not an interface, can't match implementations.");
 			}
 		}
 		addToList(this.interfaces, interfaces);
@@ -284,7 +295,8 @@ public class Matcher {
 	 */
 	public List<Constructor> matchingConstructors(Class clazz) {
 		List<Constructor> list = new LinkedList<Constructor>();
-		if (!matchConstructors) return list;
+		if (!matchConstructors)
+			return list;
 		if (!classMatches(clazz) || !constructorsMatch(clazz))
 			return list;
 		for (Constructor con : clazz.getConstructors()) {
@@ -305,7 +317,8 @@ public class Matcher {
 	 */
 	public List<Field> matchingFields(Class clazz) {
 		List<Field> list = new LinkedList<Field>();
-		if (!matchFields) return list;
+		if (!matchFields)
+			return list;
 		if (!classMatches(clazz) || !fieldsMatch(clazz))
 			return list;
 		for (Field field : clazz.getDeclaredFields()) {
@@ -329,7 +342,8 @@ public class Matcher {
 	 */
 	public List<Field> matchingStaticFields(Class clazz) {
 		List<Field> list = new LinkedList<Field>();
-		if (!matchStaticFields) return list;
+		if (!matchStaticFields)
+			return list;
 		if (!classMatches(clazz) || !fieldsMatch(clazz))
 			return list;
 		for (Field field : clazz.getDeclaredFields()) {
@@ -352,7 +366,8 @@ public class Matcher {
 	 */
 	public List<Method> matchingMethods(Class clazz) {
 		List<Method> list = new LinkedList<Method>();
-		if (!matchMethods) return list;
+		if (!matchMethods)
+			return list;
 		if (!classMatches(clazz) || !methodsMatch(clazz))
 			return list;
 		for (Method method : clazz.getDeclaredMethods()) {
@@ -376,7 +391,8 @@ public class Matcher {
 	 */
 	public List<Method> matchingStaticMethods(Class clazz) {
 		List<Method> list = new LinkedList<Method>();
-		if (!matchStaticMethods) return list;
+		if (!matchStaticMethods)
+			return list;
 		if (!classMatches(clazz) || !methodsMatch(clazz))
 			return list;
 		for (Method method : clazz.getDeclaredMethods()) {
@@ -400,15 +416,22 @@ public class Matcher {
 	private boolean classMatches(Class clazz) {
 		if (this.explicitClassMatches.contains(clazz))
 			return true;
-		if (matchPackage(clazz)) {
-			if (matchSubclass(clazz)) {
-				if (matchInterface(clazz)) {
-					if (matchClassPattern(clazz)) {
-						return true;
+		if (this.explicitClassMatches.size() > 0
+				&& !(this.matchPackage || this.matchSubclasses
+						|| this.matchImplementation || this.matchClasses)) {
+			// if this matcher specifies specific classes to match and no pattern for
+			// other matches, 
+			return false;
+		}
+			if (matchPackage(clazz)) {
+				if (matchSubclass(clazz)) {
+					if (matchInterface(clazz)) {
+						if (matchClassPattern(clazz)) {
+							return true;
+						}
 					}
 				}
 			}
-		}
 		return false;
 	}
 
@@ -435,7 +458,7 @@ public class Matcher {
 	private boolean matchSubclass(Class clazz) {
 		if (!this.matchSubclasses)
 			return true;
-		
+
 		for (Class c : this.superclasses) {
 			if (isSubclassOf(c, clazz)) {
 				return true;
@@ -452,12 +475,12 @@ public class Matcher {
 	 * @return
 	 */
 	private static boolean isSubclassOf(Class superC, Class test) {
-		
+
 		Class c = null;
 		while ((c = test.getSuperclass()) != null) {
 			if (c.equals(superC))
 				return true;
-			test=c;
+			test = c;
 		}
 		return false;
 	}
@@ -619,7 +642,7 @@ public class Matcher {
 			if (st && Modifier.isPublic(modifiers)) {
 				return true;
 			}
-			
+
 		}
 		return false;
 	}
@@ -629,9 +652,9 @@ public class Matcher {
 			return true;
 		java.util.regex.Matcher m = null;
 		for (Pattern pattern : list) {
-			
+
 			m = pattern.matcher(str);
-			//System.out.println(pattern+":"+str+":"+m.matches());
+			// System.out.println(pattern+":"+str+":"+m.matches());
 			if (m.matches()) {
 				return true;
 			}
