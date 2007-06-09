@@ -10,5 +10,9 @@ public class Configuration {
 	public Binding[] getBindings() {
 		return bindings;
 	}
+
+	public void setBindings(Binding[] bindings) {
+		this.bindings = bindings;
+	}
 	
 }

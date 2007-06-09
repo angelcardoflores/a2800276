@@ -6,7 +6,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 
 @RunWith(Suite.class)
-@SuiteClasses(value = { BinderTest.class, InjectorTest.class, MatcherTest.class })
+@SuiteClasses(value = { BinderTest.class, InjectorTest.class, MatcherTest.class, MultiPropertiesTest.class })
 public class AllTests {
 
 }

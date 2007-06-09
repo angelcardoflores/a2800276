@@ -43,7 +43,24 @@ public class Binding {
 		this.matchers = new LinkedList<Matcher>();
 
 	}
+	
+	/**
+	 * 
+	 *
+	 */
+	protected Binding () {}
 
+	protected void setSignature (Class...classes) {
+		if (this.signature == null) {
+			throw new BindingException("Signature already initialized");
+		} 
+		if (null == classes || classes.length == 0) {
+			throw new BindingException("Can't create binding for 0 length signature.");
+		}
+		
+		this.signature = classes;	
+	}
+	
 	public Binding bind(Object... objs) {
 		if (this.usingBindings) {
 			throw new BindingException("Can't mix binding Classes and binding Bindings.");
@@ -373,6 +390,10 @@ public class Binding {
 
 	public Class[] getSignature() {
 		return signature;
+	}
+
+	public boolean hasMatchers() {
+		return matchers.size()!=0;
 	}
 
 }

@@ -93,7 +93,7 @@ public class MatcherTest {
 		expected = TestClass.class.getField("testStaticString");
 		actual = list.get(0);
 		assertEquals(expected, actual);
-		assertEquals(list.size(), 1);
+		assertEquals(list.size(), 2);
 		
 		matcher = new Matcher().forMethods("^test.*");
 		List<Method> listM = matcher.matchingMethods(TestClass.class);
@@ -111,7 +111,7 @@ public class MatcherTest {
 		expectedM0 = TestClass.class.getMethod("testStaticMethod");
 		Method actualM = listM.get(0);
 		assertEquals(expectedM0, actualM);
-		assertEquals(listM.size(), 1);
+		assertEquals(1, listM.size());
 		
 	}
 	
