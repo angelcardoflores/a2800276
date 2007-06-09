@@ -55,21 +55,30 @@ public class Injector {
 			}
 		}
 
-		if (!staticMembersInitialized(clazz)) {
-			boolean f = injectStaticFields(instance);
-			boolean m = injectStaticMethods(instance);
-			if (f || m) initializedClasses.add(clazz);
-		}
+		injectInstance(instance);
 
-		injectFields(instance);
-		injectMethods(instance);
 		
 		stack.pop();
 		return instance;
 	}
 	
+	public <T> T injectInstance (T instance) {
+		injectStatic(instance);
+		injectFields(instance);
+		injectMethods(instance);
+		return instance;
+	}
 	
-
+	protected <T> T injectStatic (T instance) {
+		if (!staticMembersInitialized(instance.getClass())) {
+			boolean f = injectStaticFields(instance);
+			boolean m = injectStaticMethods(instance);
+			if (f || m) initializedClasses.add(instance.getClass());
+		} 
+		return instance;
+	}
+	
+	
 	private boolean staticMembersInitialized(Class clazz) {
 		//System.out.println(clazz + "--" +initializedClasses.contains(clazz));
 		

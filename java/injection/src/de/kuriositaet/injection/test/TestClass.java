@@ -15,6 +15,7 @@ public class TestClass extends TestBase implements TestInterface {
 
 
 	public static String testStaticString;
+	public static String testStaticString2;
 
 	public TestClass() {
 	}
@@ -47,6 +48,10 @@ public class TestClass extends TestBase implements TestInterface {
 	}
 
 	public static void testStaticMethod() {
+	}
+	
+	public static void setStatic(String str) {
+		testStaticString2=str;
 	}
 	
 	public boolean debug () {

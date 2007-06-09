@@ -52,6 +52,8 @@ public class InjectorTest {
 		assertEquals("789", TestClass.testStaticString);	
 	}
 	
+	
+	
 	@Test public void complexTest () {
 		Matcher m = new Matcher().forConstructors();
 		Binding binding = new Binding(TestInterface.class).bind(TestClass.class).to(m);
@@ -138,6 +140,32 @@ public class InjectorTest {
 		assertTrue(test1.getStr1()==test2.getStr1());
 		assertFalse(test1.getStr2()==test2.getStr2());
 		assertTrue(test1.getStr3()==test2.getStr3());
+		
+		
+	}
+	
+	@Test public void staticInjection () {
+		Matcher m = new Matcher().forStaticFields().forStaticMethods().forClass(TestClassTwo.class);
+		Binding b = new Binding(String.class).bind("123").to(m);
+		Injector i = new Injector(new Configuration(b));
+		TestClassTwo t1 = new TestClassTwo();
+		i.injectInstance(t1);
+		assertEquals("123", TestClassTwo.staticTest1);
+		assertEquals("123", TestClassTwo.staticTest2);
+		
+		b = new Binding(String.class).bind("abc").to(m);
+		TestClassTwo t2 = new TestClassTwo();
+		Injector i2 = new Injector(new Configuration(b));
+		i2.injectInstance(t2);
+		assertEquals("123", TestClassTwo.staticTest1);
+		assertEquals("123", TestClassTwo.staticTest2);
+		
+		m = new Matcher().forMethods().forClass(TestClassTwo.class);
+		b.to(m);
+		i = new Injector(new Configuration(b));
+		assertEquals(null, t2.testString);
+		i.injectInstance(t2);
+		assertEquals("abc", t2.testString);
 		
 		
 	}

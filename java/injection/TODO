@@ -1,5 +1,4 @@
 - warnings for non Bound values.
 - Annotation filter
-- instance injection
 - ConfigProperties
 - Scopes
