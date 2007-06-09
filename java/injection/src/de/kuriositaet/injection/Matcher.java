@@ -398,7 +398,7 @@ public class Matcher {
 		for (Method method : clazz.getDeclaredMethods()) {
 			int modifier = method.getModifiers();
 			if (Modifier.isPublic(modifier) && Modifier.isStatic(modifier)) {
-				if (matchesPattern(this.methodPatterns, method.getName())) {
+				if (matchesPattern(this.staticMethodPatterns, method.getName())) {
 					list.add(method);
 				}
 			}
@@ -592,6 +592,7 @@ public class Matcher {
 				boolean st = checkStatic ? Modifier.isStatic(modifier)
 						: !Modifier.isStatic(modifier);
 				if (st && Modifier.isPublic(modifier)) {
+					//System.out.println("here: "+method+" : "+Modifier.isStatic(modifier)+":"+st+" : cs:"+checkStatic);
 					if (matchesPattern(patterns, method.getName())) {
 						return true;
 					}
@@ -654,7 +655,8 @@ public class Matcher {
 		for (Pattern pattern : list) {
 
 			m = pattern.matcher(str);
-			// System.out.println(pattern+":"+str+":"+m.matches());
+			//System.out.println(pattern+":"+str+":"+m.matches());
+			
 			if (m.matches()) {
 				return true;
 			}
