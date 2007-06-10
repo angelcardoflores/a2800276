@@ -1,5 +1,7 @@
 package de.kuriositaet.injection;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,6 +38,20 @@ public class PropertyConfiguration extends Configuration {
 
 	public PropertyConfiguration(MultiProperties properties) {
 		this.properties = properties;
+		init();
+	}
+	public PropertyConfiguration(String propertiesName) {
+		InputStream is = this.getClass().getResourceAsStream(propertiesName);
+		this.properties = new MultiProperties();
+		try {
+			this.properties.load(is);
+		} catch (IOException e) {
+			throw new BindingException("Could not load resource: "+propertiesName);
+		}
+		init();
+	}
+
+	private void init() {
 		createMatchers();
 		this.exportedBindings=new LinkedList<Binding>();
 		createBindings();
@@ -64,6 +80,7 @@ public class PropertyConfiguration extends Configuration {
 			binding = Binding.class.newInstance();
 			binding.setSignature(getClasses(signature));
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new BindingException("Couldn't instantiate binding...");
 		} 
 		
@@ -149,10 +166,14 @@ public class PropertyConfiguration extends Configuration {
 		String regexp = classProperties.getProperty("regexp");
 		String implementation = classProperties.getProperty("implementation");
 		
-		matcher.forClass(getClasses(explicit));
-		matcher.forSubclassesOf(getClasses(children));
-		matcher.forImplementationsOf(getClasses(implementation));
-		matcher.forClasses(getRegexps(regexp));
+		if (null!=explicit)
+			matcher.forClass(getClasses(explicit));
+		if (null!=children)
+			matcher.forSubclassesOf(getClasses(children));
+		if (null!=implementation)
+			matcher.forImplementationsOf(getClasses(implementation));
+		if (null!=regexp)
+			matcher.forClasses(getRegexps(regexp));
 		
 		MultiProperties memberProperties = subProperties.getSubProperties("members");
 		String constructors = memberProperties.getProperty("constructors");
@@ -214,17 +235,19 @@ public class PropertyConfiguration extends Configuration {
 	private Class [] getClasses(String str) {
 		String [] classNames = getStrings(str);
 		Class [] classes = new Class[classNames.length];
-		String className = null;
 		for (int i=0; i!=classes.length; ++i) {
 			try {
-				classes[i] = Class.forName(className);
+				classes[i] = Class.forName(classNames[i]);
 			} catch (ClassNotFoundException e) {
-				throw new BindingException("Class: "+className+"not found.", e);
+				throw new BindingException("Class: "+classNames[i]+"not found.", e);
 			}
 		}
 		return classes;
 	}
 	private String [] getStrings (String str) {
+		if (null == str) {
+			return new String[0];
+		}
 		String [] each = str.split(",");
 		String [] noQuotes = new String[each.length];
 		for (int i=0; i!=each.length; ++i) {

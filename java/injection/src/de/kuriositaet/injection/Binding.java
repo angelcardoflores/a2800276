@@ -41,17 +41,18 @@ public class Binding {
 					"Can't create binding for 0 length signature.");
 		this.signature = classes;
 		this.matchers = new LinkedList<Matcher>();
-
 	}
 	
 	/**
 	 * 
 	 *
 	 */
-	protected Binding () {}
+	protected Binding () {
+		this.matchers = new LinkedList<Matcher>();
+	}
 
 	protected void setSignature (Class...classes) {
-		if (this.signature == null) {
+		if (this.signature != null) {
 			throw new BindingException("Signature already initialized");
 		} 
 		if (null == classes || classes.length == 0) {
