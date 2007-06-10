@@ -40,8 +40,13 @@ public class PropertyConfigurationTest {
 	static final String PROP_11 = PROP_DIR + "/test11.properties";
 	static final String PROP_12 = PROP_DIR + "/test12.properties";
 	static final String PROP_13 = PROP_DIR + "/test13.properties";
+	static final String PROP_14 = PROP_DIR + "/test14.properties";
+	static final String PROP_15 = PROP_DIR + "/test15.properties";
+	static final String PROP_16 = PROP_DIR + "/test16.properties";
+	static final String PROP_17 = PROP_DIR + "/test17.properties";
+	static final String PROP_18 = PROP_DIR + "/test18.properties";
 	
-	/*@Test*/ public void basicTest () {
+	@Test public void basicTest () {
 		MultiProperties props = new MultiProperties();
 		InputStream is = this.getClass().getResourceAsStream(PROP_1);
 		try {
@@ -142,6 +147,10 @@ public class PropertyConfigurationTest {
 	
 	@Test public void subBindingTest () {
 		Configuration config = new PropertyConfiguration(PROP_13);
+		
+//		for (Binding b:config.getBindings()) {
+//			System.out.println(b);
+//		}
 		Injector inj = new Injector(config);
 		TestClass test1 = inj.createInstance(TestClass.class);
 		TestClass test2 = inj.createInstance(TestClass.class);
@@ -149,6 +158,51 @@ public class PropertyConfigurationTest {
 		// Same problem... singleton doesn't work with property based config.
 //		assertFalse(test1.getStr2()==test2.getStr2());
 		assertTrue(test1.getStr3()==test2.getStr3());
+		
+		
+	}
+
+	@Test public void weirdSingleton () {
+		// Singleton seems to work fine for non-String classes...
+		Configuration config = new PropertyConfiguration(PROP_14);
+		Injector i = new Injector(config);
+		TestClassTwo test = i.createInstance(TestClassTwo.class);
+		TestClassTwo test2 = i.createInstance(TestClassTwo.class);
+		assertTrue (test.testInterfaceImpl == test2.testInterfaceImpl);
+		
+		config = new PropertyConfiguration(PROP_15);
+		i = new Injector(config);
+		test = i.createInstance(TestClassTwo.class);
+		test2 = i.createInstance(TestClassTwo.class);
+		assertFalse (test.testInterfaceImpl == test2.testInterfaceImpl);
+	}
+	
+	@Test public void staticInjection () {
+//		Matcher m = new Matcher().forStaticFields().forStaticMethods().forClass(TestClassThree.class);
+//		Binding b = new Binding(String.class).bind("123").to(m);
+		Configuration c = new PropertyConfiguration(PROP_16);
+		Injector i = new Injector(c);
+		TestClassThree t1 = new TestClassThree();
+		i.injectInstance(t1);
+		assertEquals("123", TestClassThree.staticTest1);
+		assertEquals("123", TestClassThree.staticTest2);
+		
+//		b = new Binding(String.class).bind("abc").to(m);
+		
+		c = new PropertyConfiguration(PROP_17);
+		TestClassThree t2 = new TestClassThree();
+		Injector i2 = new Injector(c);
+		i2.injectInstance(t2);
+		assertEquals("123", TestClassThree.staticTest1);
+		assertEquals("123", TestClassThree.staticTest2);
+//		
+//		m = new Matcher().forMethods().forClass(TestClassThree.class);
+//		b.to(m);
+		c = new PropertyConfiguration(PROP_18);
+		i = new Injector(c);
+		assertEquals(null, t2.testString);
+		i.injectInstance(t2);
+		assertEquals("abc", t2.testString);
 		
 		
 	}

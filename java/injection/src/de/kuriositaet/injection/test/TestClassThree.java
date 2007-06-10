@@ -1,6 +1,6 @@
 package de.kuriositaet.injection.test;
 
-public class TestClassTwo {
+public class TestClassThree {
 
 	public TestInterface testInterfaceImpl;
 
@@ -10,9 +10,9 @@ public class TestClassTwo {
 	public String testString;
 	
 	
-	public TestClassTwo(){}
+	public TestClassThree(){}
 	
-	public TestClassTwo (TestInterface t) {
+	public TestClassThree (TestInterface t) {
 		this.testInterfaceImpl = t;
 	}
 	
