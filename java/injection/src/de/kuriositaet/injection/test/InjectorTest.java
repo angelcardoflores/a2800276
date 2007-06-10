@@ -67,6 +67,8 @@ public class InjectorTest {
 		assertEquals("123", test.getTestString());
 		assertTrue(test.debug());
 		
+		
+		
 		injector = new Injector(new Configuration(binding, binding2));
 		test = injector.createInstance(TestClassTwo.class);
 		assertEquals("123", test.getTestString());
@@ -113,7 +115,7 @@ public class InjectorTest {
 		test2 = injector.createInstance(TestClassTwo.class);
 		assertFalse(test1.getTestInterface() == test2.getTestInterface());
 		
-		m.forPackage("de.kuriositaet.injection.test");
+		m.forPackages("de.kuriositaet.injection.test");
 		binding = new Binding(String.class).bind(String.class).to(m).singleton();
 		injector = new Injector(new Configuration(binding));
 		TestClass testA = injector.createInstance(TestClass.class);

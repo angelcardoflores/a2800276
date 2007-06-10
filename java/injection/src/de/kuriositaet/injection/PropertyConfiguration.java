@@ -14,6 +14,7 @@ import de.kuriositaet.injection.properties.MultiProperties;
 		matcher.name.classes.children = <class names for subclasses>
 		matcher.name.classes.regexp 
 		matcher.name.classes.implementations
+		matcher.name.classes.packages
 
 		matcher.name.members.constructors
 		matcher.name.members.methods
@@ -55,6 +56,7 @@ public class PropertyConfiguration extends Configuration {
 		createMatchers();
 		this.exportedBindings=new LinkedList<Binding>();
 		createBindings();
+		//System.out.println(this.exportedBindings.size());
 		Binding [] cast = new Binding[0];
 		this.setBindings(exportedBindings.toArray(cast));
 	}
@@ -67,11 +69,45 @@ public class PropertyConfiguration extends Configuration {
 		
 		this.bindings = new HashMap<String, Binding>();
 		for (String name : bindings.getSubPropertyKeys()) {
-			this.bindings.put(name, createBinding(bindings.getSubProperties(name)));
+			Binding binding = createBinding(bindings.getSubProperties(name));
+			this.bindings.put(name.trim(), binding);
 		}
+		resolveSubbindings();
 		
 	}
 
+	private void resolveSubbindings() {
+		// Properties is backed by a Hashtable, so the order in which the
+		// bindings are processed isn't defined. This isn't a problem, except
+		// for the cases where one binding references another. So first we load
+		// all the bindings from the Properties and then this method is used to
+		// resolve bindings that refer to others. E.g.
+		//
+		// binding.binding1.signature = java.lang.String
+		// binding.binding1.value = "123"
+		// ...
+		// binding.binding2.signature = java.lang.String, java.lang.String
+		// binding.binding2.bindings = binding1, binding1
+		
+		MultiProperties props = this.properties.getSubProperties("binding");
+		
+		for (String bindingName : props.getSubPropertyKeys()) {
+			
+			Binding binding = this.bindings.get(bindingName);
+			MultiProperties subbindings = props.getSubProperties(bindingName);
+
+			String [] subBindingNames = getStrings(subbindings.getProperty("bindings"));
+			for (String name : subBindingNames) {
+				
+				Binding b = this.bindings.get(name);
+				if (b==null) {
+					throw new BindingException("Binding name: "+name+" not defined in Properties");
+				}
+				binding.bind(b);
+			}
+		}
+		
+	}
 	private Binding createBinding(MultiProperties subProperties) {
 		
 		String signature = subProperties.getProperty("signature");
@@ -86,22 +122,20 @@ public class PropertyConfiguration extends Configuration {
 		
 		String [] matcherNames = getStrings(subProperties.getProperty("matchers"));
 		for (String matcher : matcherNames) {
-			binding.to(this.matchers.get(matcher));
-		}
-		
-		
-		String [] bindingNames = getStrings(subProperties.getProperty("bindings"));
-		for (String name : bindingNames) {
-			Binding b = this.bindings.get(name);
-			if (b==null) {
-				throw new BindingException("Binding name: "+name+" not defined in Properties");
+			Matcher m = this.matchers.get(matcher);
+			if (null==m) {
+				throw new BindingException("No matcher named: "+matcher+" defined!");
 			}
-			binding.bind(b);
+			binding.to(m);
 		}
+		
+		
+		
 		
 		String [] values = getStrings(subProperties.getProperty("values"));
 		Object [] objs = new Object[values.length];
 		for (int i=0; i!=values.length; ++i) {
+			
 			if (values[i].startsWith("\"")) {
 				// it's a string.
 				objs[i] = values[i].replaceAll("\"", "");
@@ -122,11 +156,11 @@ public class PropertyConfiguration extends Configuration {
 					objs[i] = "true".equalsIgnoreCase(values[i]);
 				} else {
 					// at last, we have to treat it as a classname
-					
 					try {
-						objs[i] = Class.forName(values[i]);
+						objs[i] = Class.forName(values[i].trim());
 					} catch (ClassNotFoundException e) {
-						throw new BindingException("Can't handle binding value: "+values[i]);
+						e.printStackTrace();
+						throw new BindingException("Can't handle binding value: "+values[i], e);
 					}
 					
 				}	
@@ -134,6 +168,10 @@ public class PropertyConfiguration extends Configuration {
 			binding.bind(objs);
 		}
 		
+		String singleton = subProperties.getProperty("singleton");
+		if ("true".equalsIgnoreCase(singleton)) {
+			binding.singleton();
+		}
 		
 		if (binding.hasMatchers()) {
 			this.exportedBindings.add(binding);
@@ -164,16 +202,19 @@ public class PropertyConfiguration extends Configuration {
 		String explicit = classProperties.getProperty("explicit");
 		String children = classProperties.getProperty("children");
 		String regexp = classProperties.getProperty("regexp");
-		String implementation = classProperties.getProperty("implementation");
+		String implementations = classProperties.getProperty("implementations");
+		String packages = classProperties.getProperty("packages");
 		
 		if (null!=explicit)
 			matcher.forClass(getClasses(explicit));
 		if (null!=children)
 			matcher.forSubclassesOf(getClasses(children));
-		if (null!=implementation)
-			matcher.forImplementationsOf(getClasses(implementation));
+		if (null!=implementations)
+			matcher.forImplementationsOf(getClasses(implementations));
 		if (null!=regexp)
 			matcher.forClasses(getRegexps(regexp));
+		if (null!=packages)
+			matcher.forPackages(getStrings(packages));
 		
 		MultiProperties memberProperties = subProperties.getSubProperties("members");
 		String constructors = memberProperties.getProperty("constructors");
@@ -237,9 +278,18 @@ public class PropertyConfiguration extends Configuration {
 		Class [] classes = new Class[classNames.length];
 		for (int i=0; i!=classes.length; ++i) {
 			try {
-				classes[i] = Class.forName(classNames[i]);
+				if ("boolean".equals(classNames[i])) {
+					classes[i] = boolean.class;
+				} else if ("int".equals(classNames[i])) {
+					classes[i] = int.class;
+				} else if ("double".equals(classNames[i])) {
+					classes[i] = double.class;
+					// other basic types currently not supported... :(
+				} else {
+					classes[i] = Class.forName(classNames[i].trim());
+				}
 			} catch (ClassNotFoundException e) {
-				throw new BindingException("Class: "+classNames[i]+"not found.", e);
+				throw new BindingException("Class: >"+classNames[i]+"< not found.", e);
 			}
 		}
 		return classes;
@@ -251,7 +301,7 @@ public class PropertyConfiguration extends Configuration {
 		String [] each = str.split(",");
 		String [] noQuotes = new String[each.length];
 		for (int i=0; i!=each.length; ++i) {
-			noQuotes[i] = each[i].replaceAll(",", "");
+			noQuotes[i] = each[i].replaceAll("'", "").trim();
 		}
 		return noQuotes;
 	}

@@ -396,5 +396,45 @@ public class Binding {
 	public boolean hasMatchers() {
 		return matchers.size()!=0;
 	}
+	
+	public String toString () {
+		String str = "";
+		str += "Binding. Signature:\n";
+		for (Class c : this.getSignature()) {
+			str += "\t"+c.getSimpleName()+"\n";
+		}
+		str += "singleton: " + this.singleton+"\n";
+		
+		if (this.usingBindings) {
+			str += "uses Subbindings:\n";
+			str += "-----------------";
+			for (Binding b : this.subBindings) {
+				str += "\n\t"+b.toString();
+			}
+			str += "-----------------\n";
+		} else {
+			str += "uses direct Bindings:\n";
+			str += "---------------------";
+			for (Object o : this.boundValues) {
+				if (o instanceof Class) {
+					str += "\n\t"+((Class)o).getSimpleName();
+				} else {
+					str += "\n\t"+o.toString()+":"+(o.getClass().getSimpleName());
+				}
+			}
+			str += "\n---------------------\n";
+		}
+		
+		if (this.matchers.size() >0) {
+			str += "using matchers:\n";
+			str += "---------------";
+			for (Matcher m : this.matchers) {
+				str += "\n"+m.toString();
+			}
+			str += "\n---------------\n";
+		}
+		
+		return str;
+	}
 
 }

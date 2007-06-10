@@ -71,7 +71,7 @@ public class MatcherTest {
 		assertFalse(matcher.matches(this.getClass()));
 		assertTrue(matcher.matches(TestClass.class));
 		
-		matcher = new Matcher().forPackage("de.kuriositaet.injection.test").forFields();
+		matcher = new Matcher().forPackages("de.kuriositaet.injection.test").forFields();
 		assertTrue(matcher.matches(TestClass.class));
 		assertFalse(matcher.matches(this.getClass()));
 		

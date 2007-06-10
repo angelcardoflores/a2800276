@@ -160,7 +160,7 @@ public class Matcher {
 	 * @param packages
 	 * @return
 	 */
-	public Matcher forPackage(String... packages) {
+	public Matcher forPackages(String... packages) {
 		this.matchPackage = true;
 		addToList(this.packages, packages);
 		return this;
@@ -662,5 +662,58 @@ public class Matcher {
 			}
 		}
 		return false;
+	}
+	
+	public String toString() {
+		String str = "";
+		str += "Matcher:";
+		str += "\n\tforConstructors? "	+this.matchConstructors;
+		str += "\n\tforFields? "		+this.matchFields;
+		str += "\n\tforStaticFields? "	+this.matchStaticFields;
+		str += "\n\tforMethods? "		+this.matchMethods;
+		str += "\n\tforStaticMethods? "	+this.matchStaticMethods;
+		str += "\n\tforPackages? "		+this.matchPackage;
+		str += "\n";
+		if (this.matchFields && this.fieldsPatterns.size() > 0) {
+			str += "Field Patterns: \n";
+			str += "---------------";
+			for (Pattern p : this.fieldsPatterns) {
+				str +="\n\t"+p;
+			}
+			str += "\n---------------";
+		}
+		if (this.matchStaticFields && this.staticFieldPatterns.size() > 0) {
+			str += "Static Field Patterns: \n";
+			str += "----------------------";
+			for (Pattern p : this.staticFieldPatterns) {
+				str +="\n\t"+p;
+			}
+			str += "\n----------------------";
+		}
+		if (this.matchMethods && this.methodPatterns.size() >0) {
+			str += "Method Patterns: \n";
+			str += "---------------";
+			for (Pattern p : this.methodPatterns) {
+				str +="\n\t"+p;
+			}
+			str += "\n---------------";
+		}
+		if (this.matchStaticMethods && this.staticMethodPatterns.size() >0) {
+			str += "Static Method Patterns: \n";
+			str += "-----------------------";
+			for (Pattern p : this.staticMethodPatterns) {
+				str +="\n\t"+p;
+			}
+			str += "\n-----------------------";
+		}
+		if (this.matchPackage && this.packages.size() >0) {
+			str += "Packages: \n";
+			str += "-----------------------";
+			for (String p : this.packages) {
+				str +="\n\t"+p;
+			}
+			str += "\n-----------------------";
+		}
+		return str;
 	}
 }
