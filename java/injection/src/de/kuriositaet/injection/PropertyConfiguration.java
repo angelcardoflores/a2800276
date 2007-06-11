@@ -10,11 +10,11 @@ import java.util.regex.Pattern;
 
 import de.kuriositaet.injection.properties.MultiProperties;
 /**
- * 		matcher.name.classes.explicit = 'com.example.Example', 'com.example.Example2'
-		matcher.name.classes.children = <class names for subclasses>
-		matcher.name.classes.regexp 
-		matcher.name.classes.implementations
-		matcher.name.classes.packages
+ * 		matcher.<name>.classes.explicit = 'com.example.Example', 'com.example.Example2'
+		matcher.<name>.classes.children = <class names for subclasses>
+		matcher.<name>.classes.regexp 
+		matcher.<name>.classes.implementations
+		matcher.<name>.classes.packages
 
 		matcher.name.members.constructors
 		matcher.name.members.methods

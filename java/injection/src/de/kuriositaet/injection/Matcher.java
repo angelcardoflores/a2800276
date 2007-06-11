@@ -12,18 +12,21 @@ import java.util.Arrays;
 /**
  * 
  * The Matcher class is used to define a set of members. Use `matches(Class)` to
- * determine whether a class contains members that match the current
- * definitions. The matching members can be accessed using the methods:
+ * determine whether a class contains members that match the definition of a
+ * matcher. The matching members can be accessed using the methods:
  * `matchingConstructors(Class)`, `matchingFunctions(Class)`, etc.
  * 
  * Matcher contains two (three?) types of methods to define the match. The
  * methods `forConstructors`, `forFields(...)`, `forStaticFields(...)`,
  * `forMethods(...)` and `forStaticMethods(...)` define which types of members
- * to match.
+ * to match. These methods can be called without parameters in order to match
+ * any member, e.g. `forMethods()` will match any public instance method. These
+ * methods may also be called with one or more regular expression patterns which
+ * restrict the match to members who's names match the regular expression.
  * 
  * By default, all classes containing these members will be eligible for
- * matching. The second type of methods restricts to the matches only to
- * specific classes. These methods are `forClasses`, `forSubclassesOf(...)`,
+ * matching. The second type of filter methods restricts the matches to specific
+ * classes. These methods are `forClasses`, `forSubclassesOf(...)`,
  * `forPackage(...)` and `forImplemenationsOf(...)`. Each filter methods per se
  * will combine it's arguments with a boolean OR. E.g. if three interfaces are
  * passed to `forImplementationsOf(...)` classes matching any of the interfaces
@@ -35,11 +38,16 @@ import java.util.Arrays;
  * 
  * The (arguably) third type of class filter is the `forClass(...)` filter which
  * will match all specifically enumerated classes whether they match one of the
- * other class filters or not. The behaviour might be a little confusing: if only
- * explicit class matches and no filter like `forImplementationsOf(...)` are provided
- * the matcher only takes the specific matches into account. If filters are provided, 
- * the matcher matches the explicitly named classes AND any other class matching the 
- * filter. I.e. the filters aren't applied to the named classes.
+ * other class filters or not. The behaviour might be a little confusing: if
+ * only explicit class matches and no filter like `forImplementationsOf(...)`
+ * are provided the matcher only takes the specific matches into account. If
+ * filters are provided, the matcher matches the explicitly named classes AND
+ * any other class matching the filter. I.e. the filters aren't applied to the
+ * named classes.
+ * 
+ * Note the the Matcher defines a set of matching members regardless of their
+ * signature. The instance(s) of Binding using this matcher will only take
+ * matches with the correct signature into account.
  * 
  * 
  * @author tim
@@ -130,7 +138,13 @@ public class Matcher {
 		addToList(this.classPatterns, patterns);
 		return this;
 	}
-
+	
+	/**
+	 * restricts the match to classes whose names match any of the
+	 * provided patterns.
+	 * @param patterns
+	 * @return
+	 */
 	public Matcher forClasses(String... patterns) {
 		return this.forClasses(toPattern(patterns));
 	}
@@ -218,6 +232,13 @@ public class Matcher {
 		return this;
 	}
 
+	/**
+	 * Finds public fields matching one of the passed regular expressions
+	 * regardless of the fields type in matching classes
+	 * 
+	 * @param patterns
+	 * @return
+	 */
 	public Matcher forFields(String... strings) {
 		return forFields(toPattern(strings));
 	}
