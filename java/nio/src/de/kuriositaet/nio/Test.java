@@ -30,6 +30,8 @@ public class Test {
 		ByteBuffer buf = ByteBuffer.allocate(10);
 		//System.out.println(buf.hasRemaining());
 		
+		
+		
 		/*for (int i = 0; i != 10; ++i) {
 
 			rand.nextBytes(b);
