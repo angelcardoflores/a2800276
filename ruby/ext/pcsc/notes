@@ -1,0 +1,45 @@
+
+Documenation
+
+* README.EXT
+* Pickaxe
+* 
+
+Infrastructure
+
+* extconf.rb
+
+creates makefile
+
+	require 'mkmf'
+
+	some difficulties with Mac 'frameworks':
+		$LDFLAGS += ' -framework ...' 
+	or
+		see TK
+
+
+* Initializing lib
+	#include "ruby.h"
+	* Init_<NAME>
+
+defining modules and classes
+
+rb_define_module
+rb_define_class
+rb_define_class_under
+rb_define_module_under
+
+defining functions
+
+rb
+
+dealing with type
+	there: INT2NUM
+	and back: NUM2INT
+
+
+
+
+
+
