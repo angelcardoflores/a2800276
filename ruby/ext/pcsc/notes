@@ -38,6 +38,17 @@ dealing with type
 	there: INT2NUM
 	and back: NUM2INT
 
+	String Macros: StringValueCStr vs. StringValue, StringValuePtr
+	
+	String Functions: rb_str_new(), ...
+
+	Array: rb_ary_new3
+
+exceptions:
+
+	rb_raise
+	rb_rescue
+
 
 
 

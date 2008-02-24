@@ -1,6 +1,6 @@
 require 'mkmf'
 
-PROJECT_NAME="PCSC"
+PROJECT_NAME="PCSC_NATIVE"
 PCSC_HEADER="winscard.h"
 HEADER_PATHS=[
 "/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/"
