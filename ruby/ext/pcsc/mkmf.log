@@ -1,0 +1,18 @@
+find_header: checking for #include <winscard.h>
+... -------------------- yes
+
+"gcc -E -I. -I/opt/local/lib/ruby/1.8/i686-darwin8.10.3 -I. -I/opt/local/include -O2  -fno-common -pipe -fno-common  conftest.c -o conftest.i"
+conftest.c:1:22: error: winscard.h: No such file or directory
+checked program was:
+/* begin */
+1: #include <winscard.h>
+/* end */
+
+"gcc -E -I. -I/opt/local/lib/ruby/1.8/i686-darwin8.10.3 -I. -I/opt/local/include -O2  -fno-common -pipe -fno-common -I/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/ conftest.c -o conftest.i"
+checked program was:
+/* begin */
+1: #include <winscard.h>
+/* end */
+
+--------------------
+
