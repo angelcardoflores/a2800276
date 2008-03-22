@@ -346,6 +346,7 @@ end # module PCSC
 
 if $0 == __FILE__
   ctx = PCSC::Context.new
+  ctx.release
   puts ctx.is_valid == 0
   puts ctx.list_readers
   card = ctx.card_connect 
