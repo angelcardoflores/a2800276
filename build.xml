@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<project name="antvis" default="dependancies" basedir=".">
+
+
+
+
+	<target name="dependancies">
+		<ant antfile="../antvis/build.xml" dir="antvis" target="jar"/>
+	</target>
+
+	<target name="clean">
+		<ant antfile="../antvis/build.xml" dir="antvis" target="clean"/>
+		<ant antfile="../cmdline/build.xml" dir="cmdline" target="clean"/>
+		<ant antfile="../dot/build.xml" dir="dot" target="clean"/>
+		<ant antfile="../executer/build.xml" dir="executer" target="clean"/>
+	</target>
+</project>

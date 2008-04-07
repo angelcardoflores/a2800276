@@ -1,0 +1,20 @@
+
+
+ANTVIS - Simple command line tool to generate graph of dependancies in
+ant build scripts.
+
+Requirements:
+
+* Graphviz (http://www.graphviz.org/)
+
+To build:
+	$ant
+
+in the top directory, this runs all the other necessary build files and generates 
+`antvis.jar` in `antvis/lib`, you can run `antvis.jar` like this:
+
+	$java -jar antvis.jar
+
+Everything else should be selfexplanatory.
+
+-Tim Becker(tim.becker@gmx.net)
