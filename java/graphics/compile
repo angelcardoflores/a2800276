@@ -1,2 +1,0 @@
-banner `date`
-jikes -classpath $JIKESPATH:./classes:../swing/classes -d classes *.java chess/*java 

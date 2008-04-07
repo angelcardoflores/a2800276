@@ -1,5 +1,0 @@
-CLASSPATH=$JIKESPATH:./classes
-CLASSPATH=$CLASSPATH:../function/classes:../utils/classes
-VARS="-Dhttp.proxyHost=proxy.dmz.pago.de -Dhttp.proxyPort=8000 -classpath $CLASSPATH"
-CLASS=html.parse.HtmlParser
-java $VARS $CLASS $@

@@ -1,1 +1,0 @@
-java -cp ./classes:../swing/classes graphics.chess.Board

@@ -1,3 +1,0 @@
-cd classes
-jar -cf ../classloader.jar `find . -name '*class'` `find . -name '*.jar'`
-cd -

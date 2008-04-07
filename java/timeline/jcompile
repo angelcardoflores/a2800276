@@ -1,2 +1,0 @@
-banner `date`
-javac -classpath $JIKESPATH:./classes:../function/classes/:../utils/classes/:../swing/classes -d classes *java 
