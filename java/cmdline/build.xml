@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<project name="cmdline" default="compile" basedir=".">
+
+	<echo message="pulling in property files" />
+	<property file="build.properties" />
+	<property name="classes.dir" value="classes" />
+
+
+
+	<target name="prepare">
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="lib" />
+	</target>
+
+	<target name="clean">
+		<delete dir="${classes.dir}" />
+		<delete dir="lib" />
+	</target>
+
+	<target name="compile" depends="prepare">
+		<javac srcdir="src" destdir="${classes.dir}" />
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar basedir="${classes.dir}" destfile="lib/${ant.project.name}.jar">
+		</jar>
+	</target>
+
+	<target name="run" depends="jar">
+		<echo message="don't know how to run" />
+	</target>
+
+</project>
