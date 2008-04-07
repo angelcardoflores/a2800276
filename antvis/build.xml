@@ -31,7 +31,7 @@
 			<classpath>
 				<pathelement location="../cmdline/classes"/>
 				<pathelement location="../dot/classes"/>
-				<pathelement location="../executer/executer"/>
+				<pathelement location="../executer/classes"/>
 			</classpath>
 			
 		</javac>
