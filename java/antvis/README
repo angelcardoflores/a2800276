@@ -1,0 +1,8 @@
+
+
+ANTVIS - Simple command line tool to generate graph of dependancies in
+ant build scripts.
+
+Requirements:
+
+* Graphviz (http://www.graphviz.org/)

@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+
+<project name="antvis" default="compile" basedir=".">
+
+	<echo message="pulling in property files" />
+	<property file="build.properties" />
+	<property name="classes.dir" value="classes" />
+	<property name="assemble.dir" value="assemble" />
+
+
+
+	<target name="dependancies">
+		<ant antfile="../cmdline/build.xml" dir="../cmdline"/>
+		<ant antfile="../dot/build.xml" dir="../dot"/>
+		<ant antfile="../executer/build.xml" dir="../executer"/>
+	</target>
+
+	<target name="prepare" depends="dependancies">
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="lib" />
+	</target>
+
+	<target name="clean">
+		<delete dir="${classes.dir}" />
+		<delete dir="lib" />
+		<delete dir="${assemble.dir}" />
+	</target>
+
+	<target name="compile" depends="prepare">
+		<javac srcdir="antvis" destdir="${classes.dir}">
+			<classpath>
+				<pathelement location="../cmdline/classes"/>
+				<pathelement location="../dot/classes"/>
+				<pathelement location="../executer/executer"/>
+			</classpath>
+			
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<copy todir="${assemble.dir}">
+			<fileset dir="classes"/>
+			<fileset dir="../cmdline/classes"/>
+			<fileset dir="../dot/classes"/>
+			<fileset dir="../executer/classes"/>
+		</copy>	
+		<jar basedir="${assemble.dir}" destfile="lib/${ant.project.name}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="antvis.AntVis" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="run" depends="jar">
+		<echo message="don't know how to run" />
+	</target>
+
+</project>
