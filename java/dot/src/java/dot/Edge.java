@@ -9,9 +9,9 @@ import java.util.*;
 	@see Node
 */
 public class Edge extends AttributedElement {
-	
+
 	LinkedList nodes;
-	
+
 	/**
 		Construct an Edge connecting two Nodes.
 	*/
@@ -26,9 +26,9 @@ public class Edge extends AttributedElement {
 		haven't been constructed yet.
 	*/
 	public Edge (String str1, String str2) {
-		this (new Node(str1), new Node(str2));	
+		this (new Node(str1), new Node(str2));
 	}
-	
+
 	/**
 		Adds further nodes. The nodes will be connected to the last
 		node connected by this edge.
@@ -40,8 +40,11 @@ public class Edge extends AttributedElement {
 	public String pack () {
 		StringBuffer buf = new StringBuffer();
 		String edgeOp = (getParent() instanceof Graph) ? " -- " : " -> ";
+
 		for (ElementIterator i = new ElementIterator (nodes.iterator()); i.hasNext();){
-			buf.append(((Node)i.nextElement()).getName());
+			Node n = (Node)i.nextElement();
+
+			buf.append("\""+n.getName()+"\"");
 			if (i.hasNext()){
 				buf.append (edgeOp);
 			}
@@ -62,5 +65,5 @@ public class Edge extends AttributedElement {
 		return buf.toString();
 	}
 
-	
+
 }
