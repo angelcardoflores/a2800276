@@ -6,3 +6,32 @@ ant build scripts.
 Requirements:
 
 * Graphviz (http://www.graphviz.org/)
+
+Building:
+
+Just type `ant` in the same directory that this file is located in.
+In order to build the actual runnable application, type `ant jar`.
+
+Running:
+
+* Create the runnable application Jar by typing `ant jar` in the
+  directory that this file is located in.
+
+* This creates `lib/antvis.jar` which you can run by typing:
+
+	$ java -jar lib/antvis.jar
+
+* Just running `java -jar lib/antvis.jar` produces the following usage
+  information:
+
+age: [jre] antvis.AntVis -f inputFile [-t format] [-o outfile]
+        format: format supported by dot. Default: `dot`
+        outfile: Default stdout
+call [jre] antvis.AntVis -l for a list of supported formats
+
+
+* So for example calling:
+
+	$ java -jar lib/antvis.jar -f test.xml -t gif -o test.gif
+
+  Would generate a GIF out of the provided ant script (test.xml).

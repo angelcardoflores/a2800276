@@ -1,6 +1,27 @@
+// Copyright (c) 2008 Tim Becker (tim.becker@gmx.net)
+// 
+// Permission is hereby granted, free of charge, to any person
+// obtaining a copy of this software and associated documentation
+// files (the "Software"), to deal in the Software without
+// restriction, including without limitation the rights to use,
+// copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following
+// conditions:
+// 
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+// OTHER DEALINGS IN THE SOFTWARE.
+// 
 package antvis;
-
-
 
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -23,6 +44,12 @@ import dot.Execute;
 import dot.Node;
 
 
+/**
+ * Tiny little helper application to help visualize the dependancies
+ * within ant build files.
+ * Dependancy graphs are rendered using Graphviz, which should be
+ * installed to run. You can get Graphviz at www.graphviz.org. 
+ */
 
 public class AntVis {
 
@@ -37,7 +64,7 @@ public class AntVis {
 	private static CmdLine cmd;
 	public static void main(String [] args) throws Throwable {
 		handleArgs(args);
-		if (cmd.exists("-l")) {
+		if (cmd.exists("-l")) { // list output formats supported by graphviz.
 			for (String s : Execute.getAvailableFormats()){
 				System.out.println(s);
 			}
@@ -53,8 +80,6 @@ public class AntVis {
 
 		parser.parse(cmd.get("-f"), new DefaultHandler() {
 			public void startElement(String uri, String localName, String qname, Attributes s) {
-
-
 				if ("target".equalsIgnoreCase(qname)) {
 					String name = s.getValue("name");
 					if (null == name) {
@@ -82,7 +107,6 @@ public class AntVis {
 		// handle deps
 		for (Iterator<TwoString> it = deps.iterator(); it.hasNext();) {
 			TwoString str = it.next();
-			//System.out.println(str.one + ":!:"+str.two);
 			graph.addEdge(new Edge(nodes.get(str.one), nodes.get(str.two)));
 		}
 
@@ -90,11 +114,9 @@ public class AntVis {
 			graph.addNode(n);
 		}
 
-		//System.out.println(graph.pack());
 		OutputStream os = System.out;
 		if (cmd.get("-o")!=null) {
 			os = new FileOutputStream(cmd.get("-o"));
-			//System.out.println(cmd.get("-o"));
 		}
 
 		String format = "dot";
