@@ -1,0 +1,3 @@
+Some documentation should be nice... If you're familiar with java and
+graphviz, you probably should have great difficulties finding your way
+around. Check out `src/java/dot/tools/Dir.java` for example usage.
