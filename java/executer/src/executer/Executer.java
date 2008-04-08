@@ -1,3 +1,26 @@
+// Copyright (c) 2008 Tim Becker (tim.becker@gmx.net)
+// 
+// Permission is hereby granted, free of charge, to any person
+// obtaining a copy of this software and associated documentation
+// files (the "Software"), to deal in the Software without
+// restriction, including without limitation the rights to use,
+// copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following
+// conditions:
+// 
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+// OTHER DEALINGS IN THE SOFTWARE.
+
 package executer;
 
 import java.io.BufferedReader;
@@ -13,9 +36,30 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//import javax.xml.stream.util.StreamReaderDelegate;
 
-import sun.misc.Regexp;
+/** 
+ * This is a wee little utility to help you out in those moments where
+ * you just can't help yourself and just _have_ to call
+ * 	Runtime.getRuntime().exec
+ * 
+ * Which you're not supposed to do because it awful and the little baby
+ * Duke will cry, but tough. This utility makes it easier to deal with
+ * "cross-plattform" issues that come up when calling an external
+ * process, i.e. finding the proper binary to call.
+ *
+ * Say you want to call `dot` from the Graphwiz package... All you need
+ * to do is:
+ *
+ * <code>
+ * String [] dotArgs = [ ... args to pass dot ...];
+ * Executer exe = new Executer("dot");
+ * exe.execute("dot");
+ * </code>
+ *
+ * and `Executer` handles the rest, i.e. searching the PATH and
+ * optionally recursing through %PROGRAM_FILES% for the proper binary.
+ *
+ */
 
 public class Executer extends Process {
 
