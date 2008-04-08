@@ -24,7 +24,6 @@
 package dot;
 
 public interface Color {
-§
 	public static final String ALICEBLUE = "aliceblue"; //#f0f8ff
 	public static final String ANTIQUEWHITE = "antiquewhite"; //#faebd7
 	public static final String ANTIQUEWHITE1 = "antiquewhite1"; //#ffefdb
