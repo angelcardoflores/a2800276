@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<project default="compile" name="utils" basedir=".">
+	<property file="build.properties"/>
+	<property name="classes.dir" value="classes"/>
+	<property name="src.dir" value="src/java"/>
+	<property name="lib.dir" value="lib"/>
+	<property name="doc.dir" value="docs"/>
+
+	<echo message="building ${ant.project.name}"/>
+	<target name="dependancies">
+	</target>
+
+	<target name="prepare" depends="dependancies">
+		<mkdir dir="${classes.dir}"/>
+		<mkdir dir="${lib.dir}"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${classes.dir}"/>
+		<delete dir="${doc.dir}"/>
+	</target>
+
+	<target name="compile" depends="prepare">
+		<javac destdir="${classes.dir}" srcdir="${src.dir}">
+			<classpath>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar basedir="${classes.dir}" destfile="${lib.dir}/${ant.project.name}.jar">
+		</jar>
+	</target>
+
+	<target name="docs">
+		<javadoc splitindex="true" packagenames="*" private="true" destdir="${doc.dir}" windowtitle="${ant.project.name}">
+			<packageset defaultexcludes="yes" dir="${src.dir}">
+				<include name="**"/>
+			</packageset>
+		</javadoc>
+	</target>
+
+	<target name="all" depends="jar,docs"/>
+
+</project>
