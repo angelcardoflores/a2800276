@@ -47,7 +47,6 @@ class SomeMixes
                             "10.. ...." => :ten,
                             "...1 1..." => :two_middle,
                             "..vv vv.." => :four_middle
-
 end
 
 class TestByte < Test::Unit::TestCase
