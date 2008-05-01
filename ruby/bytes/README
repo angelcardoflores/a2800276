@@ -22,7 +22,7 @@ The beginning of an IP Packet could be coded like this:
                                "000. ...."              => :routine,
                                "...0 .... | Delay"      => :normal_delay,
                                "...1 ...."              => :low_delay,
-                               ".... 0... | Thoroughput"=> :normal_throughput,
+                               ".... 0... | Throughput" => :normal_throughput,
                                ".... 1..."              => :high_throughput,
                                ".... .0.. | Reliability"=> :low_reliability,
                                ".... .1.."              => :high_reliability,
