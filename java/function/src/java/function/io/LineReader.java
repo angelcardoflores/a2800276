@@ -37,6 +37,36 @@ public class LineReader {
 		}
 		return retVal;
 	}
+	
+	/**
+	 * Simple function to read a text file. Each line of the file specified by the 
+	 * filename parameter is applied to the function argument.
+	 * @param fileName the name of the file to read
+	 * @param func this function takes a String and gets called for every line in the file
+	 * @return the caught Exception if something went wrong, `null` otherwise 
+	 */
+	public static Throwable readFileE (String fileName, IOFunction func) {
+		Throwable retVal = null;
+		BufferedReader reader = null;
+		try {
+			reader = new BufferedReader (new FileReader (fileName));
+			String currLine = null;
+			while ((currLine=reader.readLine())!=null)
+				func.apply(currLine);
+			
+		} catch (IOException ioe) {
+			retVal = ioe;
+			//ioe.printStackTrace();
+			
+		} finally {
+			if (reader != null)
+				try {
+					reader.close();
+				} catch (Throwable t){}
+		}
+		return retVal;
+	}
+
 
 	/**
 	 * Same as `readFile` but takes a Stream.
