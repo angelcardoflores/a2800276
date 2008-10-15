@@ -39,7 +39,7 @@
 </target>
 
 <target name="doc">
-	<javadoc sourcepath="src" destdir="doc" classpath="${classes.dir}">
+	<javadoc sourcepath="src/java" destdir="doc"  classpath="../executer/classes">
 	</javadoc>
 </target>
 

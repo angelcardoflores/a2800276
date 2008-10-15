@@ -42,6 +42,7 @@ import dot.Digraph;
 import dot.Edge;
 import dot.Execute;
 import dot.Node;
+import dot.Attribute;
 
 
 /**
@@ -77,7 +78,8 @@ public class AntVis {
 
 		final HashMap<String, Node> nodes = new HashMap<String, Node>();
 		final HashSet<TwoString> deps = new HashSet<TwoString>();
-
+		final Node defaultTarget = new Node("");
+		defaultTarget.addAttribute(new Attribute("shape", "doubleoctagon"));
 		parser.parse(cmd.get("-f"), new DefaultHandler() {
 			public void startElement(String uri, String localName, String qname, Attributes s) {
 				if ("target".equalsIgnoreCase(qname)) {
@@ -99,6 +101,13 @@ public class AntVis {
 						}
 					}
 
+				} else if ("project".equalsIgnoreCase(qname)) {
+					// retrieve the default target
+					String def = s.getValue("default");
+					if (null == def) {
+						def="no default target";
+					}
+					defaultTarget.setName(def);
 				}
 			}
 		});
@@ -109,7 +118,8 @@ public class AntVis {
 			TwoString str = it.next();
 			graph.addEdge(new Edge(nodes.get(str.one), nodes.get(str.two)));
 		}
-
+		
+		nodes.put(defaultTarget.getName(), defaultTarget);
 		for (Node n : nodes.values()) {
 			graph.addNode(n);
 		}
