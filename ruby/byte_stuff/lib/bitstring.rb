@@ -18,7 +18,7 @@ class Bitstring < String
 
   # ===Internal.
   # This function executes the bitwise functions
-  def go mes, other
+  def _go mes, other
     check(other)
     b = Bitstring.new
     0.upto(length-1) {|i|
@@ -81,10 +81,13 @@ class Bitstring < String
     new_string.insert(0, "\x00" * bytes_to_shift)
     Bitstring.new(new_string[0, length])
   end
-  
+
+
   # Start counting at 0, left to right.
   # Determine the +i+th bit of this String, starts counting
   # at 0. MSB is bit 0.
+  # Negative numbers start counting from the back, like with 
+  # String indexing
   #
   # ===Example
   #   b = Bitstring.new("\xF0\xF0") 
@@ -92,20 +95,58 @@ class Bitstring < String
   #   b.bit(4)    # => 0
   #   b.bit(8)    # => 1
   #   b.bit(15)   # => 0
-  #   b.bit(16)   # => RuntimeError: Out of range
+  #   b.bit(16)   # => nil
+  #   b.bit(-1)   # => 0
+  # 
   
   def bit i
-    byte = i/8
+    byte = _idx(i)
+    return nil if byte > length-1
     mask = 0x80 >> (i%8)
-    raise "Out of range" if byte > length-1
     
     (self[byte] & mask) == mask ? 1 : 0 
   end
 
+  def set i
+    byte = _idx_raise(i)
+    mask = 0x80 >> (i%8)
+    self[byte] |= mask 
+  end
+
+  def clear i
+    byte = _idx_raise(i) 
+    mask = ~(0x80 >> (i%8))
+    self[byte] &= mask
+  end
+
+  # Which byte contains bit i?
+  def _idx i
+    i < 0 ? i = (length*8)+i : i
+    i / 8
+  end
+
+  def _idx_raise i
+    byte = _idx(i) 
+    if byte > length-1
+      raise IndexError.new("index: #{i} out of String(len=#{length})")
+    end
+    byte
+  end
+
+#  def [] *args
+#    super unless args && args.length==1 && args[0].is_a?(Fixnum)
+#    bit args[0]
+#  end
+#
+#  def []= * args
+#    super unless args && args.length==2 && args[0].is_a?(Fixnum)
+#    set_bit args[0], args[1]
+#  end
+
   # Iterates over each bit in the String, passing 0 or 1
   # to the supplied block.
   def each_bit 
-    0.upto(length*8) {|i|
+    0.upto((length*8) - 1) {|i|
       yield bit(i)
     }
   end
@@ -123,7 +164,13 @@ class Bitstring < String
     }
     str
   end
-
+  
+  # Returns the integer representation of
+  # this String. Like in the parent class, it's possible to 
+  # pass in the base, BUT here the default base is :literal instead
+  # of 10. Literal meaning the value of the bytes, "\x31" is 0x31
+  # instead of 1.
+  
   def to_i base=:literal
     return super unless base == :literal
     i = 0
