@@ -34,9 +34,8 @@ package cmdline;
  </pre>
  <p>
  In other words, a flag preceded by a dash ('-') is necessary as
- well as an option name. Standalone flags won't work in this
- implementation.
-
+ well as an option name. Standalone flags return an empty string.
+ 
  @author tim@kuriositaet.de
 
 
@@ -73,12 +72,13 @@ public class CmdLine {
 
                         ++i;
                         if (i >= args.length) {
-                                // we're done
+                            // we're done
                         		hash.put(option, "");
-                                break;
+                            break;
                         }
                         if (args[i].startsWith("-")) {
                                 // this is another option
+																hash.put(option, "");
                                 --i;
                                 continue;
                         }
