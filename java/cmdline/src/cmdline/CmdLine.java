@@ -44,7 +44,7 @@ import java.util.*;
 
 public class CmdLine {
 
-        private Hashtable hash = new Hashtable();
+        private Hashtable<String, String> hash = new Hashtable<String, String>();
 
         private String[] args;
 
