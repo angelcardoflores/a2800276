@@ -94,6 +94,14 @@ public class CmdLine {
         public String get(String option) {
                 return (String) hash.get(option);
         }
+        
+        /**
+         * Retrieve the option with the provided name, if the value is not set in
+         * the commandline arguments, return the stated default value.
+         */
+        public String get(String option, String defaultValue) {
+        	return null == get(option) ? defaultValue : get(option);
+        }
 
         /**
          * Make sure all the provided options are set and contains a value.
@@ -135,5 +143,8 @@ public class CmdLine {
                 }
                 return ret;
         }
+        
+        
 }
+
 
