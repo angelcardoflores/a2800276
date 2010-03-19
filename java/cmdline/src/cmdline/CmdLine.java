@@ -132,7 +132,7 @@ public class CmdLine {
          * @param def the default value in case the parameter wasn't set.
          * @return
          */
-        public int getInt(String option, int def) {
+        public int get(String option, int def) {
                 if (get(option) == null)
                         return def;
                 int ret = def;
@@ -142,6 +142,11 @@ public class CmdLine {
 
                 }
                 return ret;
+        }
+
+        @deprecated
+        public int getInt(String o, int def) {
+          get(o,def);
         }
         
         
